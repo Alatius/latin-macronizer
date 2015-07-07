@@ -1,0 +1,71 @@
+These instructions are for Linux (specifically of the Debian flavour). Please adapt
+to your system, if necessary.
+
+Supposedly (since you are reading this) you have already downloaded the source code
+for the macronizer and are standing in the directory called "latin-macronizer".
+
+First download the specially adapted version of Morpheus, and compile it:
+
+  git clone https://github.com/Alatius/morpheus.git
+  cd morpheus/src
+  make
+  make install
+  cd ..
+  ./update.sh
+  ./update.sh
+  echo "salve" | MORPHLIB=stemlib bin/cruncher -L
+  cd ..
+
+(Yes, run the update script twice. And check that it did in fact parse "salve" correctly!)
+
+Now download and compile RFTagger:
+
+  wget -qO- http://www.cis.uni-muenchen.de/~schmid/tools/RFTagger/data/RFTagger.tar.gz | tar xvz
+  cd RFTagger/src
+  make
+  sudo make install
+  cd ../..
+
+And the patched version of LDT:
+
+  git clone https://github.com/Alatius/treebank_data.git
+
+Convert the corpus and train RFTagger:
+
+  ./train-rftagger.sh
+
+The macronizer script stores the Morpheus analyses in a PostgreSQL database.
+So you will have to install a database server and create a database.
+The following works for me; your mileage may vary. Change theusername and
+thepassword to whatever you want.
+
+  sudo apt-get install postgresql
+  sudo -u postgres psql
+  postgres=# create user theusername password 'thepassword';
+  postgres=# create database macronizer encoding 'UTF8' owner theusername;
+  postgres=# \q
+
+Install the psycopg2 Python module:
+
+  sudo apt-get install python-psycopg2
+
+Now, edit the main script macronizer.py and set the constants in the beginning to the correct values:
+
+  MACRONIZERLIB = '/path/to/the/latin-macronizer/'
+  MORPHEUSDIR = MACRONIZERLIB+'morpheus/'
+  RFTAGGERDIR = '/usr/local/bin/'
+  DBNAME = 'macronizer'
+  DBUSER = 'theusername'
+  DBPASSWORD = 'thepassword'
+  DBHOST = 'localhost'
+
+Finally, initialize the macronizer:
+
+  python macronizer.py --initialize
+
+You can now test it with the following command
+
+  python macronizer.py --test
+
+Good luck! In case of problems, contact me at johan.winge@gmail.com and I will do my best to assist you.
+
