@@ -4,7 +4,11 @@ to your system, if necessary.
 Supposedly (since you are reading this) you have already downloaded the source code
 for the macronizer and are standing in the directory called "latin-macronizer".
 
-First download the specially adapted version of Morpheus, and compile it:
+Install prerequisite packages:
+
+  sudo apt-get install build-essential flex python-psycopg2
+
+Download the specially adapted version of Morpheus, and compile it:
 
   git clone https://github.com/Alatius/morpheus.git
   cd morpheus/src
@@ -18,6 +22,10 @@ First download the specially adapted version of Morpheus, and compile it:
 
 (Yes, run the update script twice. And check that it did in fact parse "salve" correctly!)
 
+And the patched version of the Latin Dependency Treebank:
+
+  git clone https://github.com/Alatius/treebank_data.git
+
 Now download and compile RFTagger:
 
   wget -qO- http://www.cis.uni-muenchen.de/~schmid/tools/RFTagger/data/RFTagger.tar.gz | tar xvz
@@ -25,10 +33,6 @@ Now download and compile RFTagger:
   make
   sudo make install
   cd ../..
-
-And the patched version of LDT:
-
-  git clone https://github.com/Alatius/treebank_data.git
 
 Convert the corpus and train RFTagger:
 
@@ -44,10 +48,6 @@ thepassword to whatever you want.
   postgres=# create user theusername password 'thepassword';
   postgres=# create database macronizer encoding 'UTF8' owner theusername;
   postgres=# \q
-
-Install the psycopg2 Python module:
-
-  sudo apt-get install python-psycopg2
 
 Now, edit the main script macronizer.py and set the constants in the beginning to the correct values:
 
