@@ -144,30 +144,38 @@ class Wordlist():
                 NLparts = NL.split()
                 if len(NLparts) > 0:
                     parses += postags.Morpheus2Parses(wordform,NL)
-            allaccenteds = set()
-            filteredparses = []
+            lemmatagtoaccenteds = {}
             for parse in parses:
                 lemma = parse[postags.LEMMA].replace("#","").replace("1","").replace(" ","+")
                 parse[postags.LEMMA] = lemma
                 accented = parse[postags.ACCENTEDFORM]
                 if parse[postags.LEMMA].startswith("trans-") and accented[3] != "_": # Work around shortcoming in Morpheus
                     accented = accented[:3] + "_" + accented[3:]
-                if accented == "male_":
-                    accented = "male"
+                if accented == "male_" or accented == "cave_":
+                    accented = accented[:-1]
                 parse[postags.ACCENTEDFORM] = accented
                 # Remove highly unlikely alternatives:
-                if accented not in ["me_nse_", "fabuli_s", "vi_ri_", "vi_ro_", "vi_rum", "vi_ro_rum", "vi_ri_s", "vi_ro_s"] and not (accented.startswith("vi_ct") and lemma == "vivo") and lemma not in ["pareas","de_-escendo", "de_-eo", "de_-edo", "Nus", "progredio"]:
-                    allaccenteds.add(accented.lower())
-                    filteredparses.append(parse)
-            if len(allaccenteds) > 1:
-                knownwords.add(wordform);
-                for parse in filteredparses:
-                    lemma = parse[postags.LEMMA]
-                    accented = parse[postags.ACCENTEDFORM]
+                if ( accented not in ["me_nse_", "fabuli_s", "vi_ri_", "vi_ro_", "vi_rum", "vi_ro_rum", "vi_ri_s", "vi_ro_s"] and
+                     not (accented.startswith("vi_ct") and lemma == "vivo") and
+                     not (accented.startswith("ori_") and lemma == "orior") and
+                     not (accented.startswith("mori_") and lemma == "morior") and
+                     not (accented.startswith("conci_") and lemma == "concitus") and
+                     lemma not in ["pareas","de_-escendo", "de_-eo", "de_-edo", "Nus", "progredio"] ):
                     tag = postags.Parse2LDT(parse)
+                    lemmatagtoaccenteds[(lemma,tag)] = lemmatagtoaccenteds.get((lemma,tag),[]) + [accented]
+            if len(lemmatagtoaccenteds) == 0:
+                continue
+            knownwords.add(wordform);
+            allaccenteds = set()
+            for (lemma, tag), accenteds in lemmatagtoaccenteds.items():
+                # Sometimes there are several different accented forms; prefer 'volvit' to 'voluit', 'Ju_lius' to 'Iu_lius' etc.
+                bestaccented = sorted(accenteds, key = lambda x: x.count('v')+x.count('j')+x.count('J'))[-1]
+                lemmatagtoaccenteds[(lemma, tag)] = bestaccented
+                allaccenteds.add(bestaccented.lower())
+            if len(allaccenteds) > 1:
+                for (lemma, tag), accented in lemmatagtoaccenteds.items():
                     self.dbcursor.execute("INSERT INTO morpheus (wordform, morphtag, lemma, accented) VALUES (%s,%s,%s,%s)", (wordform, tag, lemma, accented))
             elif len(allaccenteds) == 1:
-                knownwords.add(wordform);
                 accented = allaccenteds.pop()
                 self.dbcursor.execute("INSERT INTO morpheus (wordform, accented) VALUES (%s,%s)", (wordform, accented))
         ## The remaining were unknown to Morpheus:
@@ -340,7 +348,7 @@ class Tokenization:
         for oldtoken in self.tokens:
             tobeadded = []
             oldlc = oldtoken.token.lower()
-            if oldtoken.isword and (oldlc in wordlist.unknownwords or oldlc in ["nec","neque","necnon","seque","seseque","quique","secumque"]):
+            if oldtoken.isword and oldlc != "que" and (oldlc in wordlist.unknownwords or oldlc in ["nec","neque","necnon","seque","seseque","quique","secumque"]):
                 if oldlc == "nec":
                     tobeadded = oldtoken.split(1,True)
                 elif oldlc == "necnon":
@@ -621,8 +629,8 @@ if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
                 print '</pre>'
     
     print '<h2>Information</h2>'
-    print '<p>This automatic macronizer lets you quickly mark all the long vowels in a Latin text. The expected accuracy on an average classical text is estimated to be about 98% to 99%. Please re    view the resulting macrons with a critical eye!</p>'
-    print '<p>The macronization is performed using a part-of-speech tagger (<a href="http://www.cis.uni-muenchen.de/~schmid/tools/RFTagger/">RFTagger</a>) trained on the <a href="http://www.dh.uni    -leipzig.de/wo/projects/ancient-greek-and-latin-dependency-treebank-2-0/">Latin Dependency Treebank</a>, and with macrons provided by a customized version of the Morpheus morphological analyze    r. An earlier version of this tool was the subject of my bachelor’s thesis in Language Technology, <i><a href="http://stp.lingfil.uu.se/exarb/arch/winge2015.pdf">Automatic annotation of Latin     vowel length</a></i>.</p>'
+    print '<p>This automatic macronizer lets you quickly mark all the long vowels in a Latin text. The expected accuracy on an average classical text is estimated to be about 98% to 99%. Please review the resulting macrons with a critical eye!</p>'
+    print '<p>The macronization is performed using a part-of-speech tagger (<a href="http://www.cis.uni-muenchen.de/~schmid/tools/RFTagger/">RFTagger</a>) trained on the <a href="http://www.dh.uni-leipzig.de/wo/projects/ancient-greek-and-latin-dependency-treebank-2-0/">Latin Dependency Treebank</a>, and with macrons provided by a customized version of the Morpheus morphological analyzer. An earlier version of this tool was the subject of my bachelor’s thesis in Language Technology, <i><a href="http://stp.lingfil.uu.se/exarb/arch/winge2015.pdf">Automatic annotation of Latin vowel length</a></i>.</p>'
     print '<p>Please note that this tool is not designed to perform scansion of poetry. Of course, any text can be macronized, but no metrical analysis is attempted.</p>'
     print '<p>Copyright 2015 Johan Winge. Please send comments to <a href="mailto:johan.winge@gmail.com">johan.winge@gmail.com</a>.</p>'
 
@@ -710,6 +718,7 @@ else: # Run as a free-standing Python script
             print "  --test         Mark vowels in a short example text."
             print "  --initialize   Reset the database (only necessary once)."
             print "  -h  or --help  Show this information."
+            exit(0)
         elif arg == "--initialize":
             wordlist = Wordlist()
             wordlist.reinitializedatabase()
@@ -728,6 +737,9 @@ else: # Run as a free-standing Python script
             outfilename = iterator.next()
         elif arg == "--test":
             dotest = True
+        else:
+            print "Unknown argument:", arg
+            exit(1)
     #endfor
     if dotest:
         texttomacronize = "O orbis terrarum te saluto!\n"
