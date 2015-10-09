@@ -153,6 +153,8 @@ class Wordlist():
                     accented = accented[:3] + "_" + accented[3:]
                 if accented == "male_" or accented == "cave_":
                     accented = accented[:-1]
+                if accented == "fame":
+                    accented += "_"
                 parse[postags.ACCENTEDFORM] = accented
                 # Remove highly unlikely alternatives:
                 if ( accented not in ["me_nse_", "fabuli_s", "vi_ri_", "vi_ro_", "vi_rum", "vi_ro_rum", "vi_ri_s", "vi_ro_s"] and
@@ -160,7 +162,7 @@ class Wordlist():
                      not (accented.startswith("ori_") and lemma == "orior") and
                      not (accented.startswith("mori_") and lemma == "morior") and
                      not (accented.startswith("conci_") and lemma == "concitus") and
-                     lemma not in ["pareas","de_-escendo", "de_-eo", "de_-edo", "Nus", "progredio"] ):
+                     lemma not in ["pareas", "de_-escendo", "de_-eo", "de_-edo", "Nus", "progredio", "aris"] ):
                     tag = postags.Parse2LDT(parse)
                     lemmatagtoaccenteds[(lemma,tag)] = lemmatagtoaccenteds.get((lemma,tag),[]) + [accented]
             if len(lemmatagtoaccenteds) == 0:
