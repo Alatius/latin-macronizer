@@ -599,7 +599,7 @@ if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
     if macronizedtext != "":
         print '<h2>Result</h2>'
         print '<p>(Ambiguous forms are marked <span class="ambig">yellow</span>; unknown forms are <span class="unknown">orange</span>. You may click on a vowel to add or remove a macron.)</p>'
-	print '<div class="prewrap" id="selectme">' + tokenization.detokenize(True) + '</div>'
+        print '<div class="prewrap" id="selectme">' + tokenization.detokenize(True) + '</div>'
         print '<p><input id="selecttext" type="button" value="Copy text"/></p>'
 
     if domacronize and any(i in texttomacronize for i in u"āēīōū"):
