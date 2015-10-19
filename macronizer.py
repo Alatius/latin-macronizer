@@ -555,11 +555,12 @@ if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
     print '<html>'
     print '<head>'
     print '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">'
-    print '<style>'
+    print '<style type="text/css">'
     print '  span.wrong {color:red;}'
     print '  span.ambig {background-color:yellow;}'
     print '  span.unknown {background-color:orange;}'
     print '  span.fixed {background-color:lightgreen;}'
+    print '  div.prewrap {white-space: pre-wrap;}'
     print '</style>'
     print '<title>A Latin Macronizer</title>'
     print '</head>'
@@ -598,11 +599,12 @@ if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
     if macronizedtext != "":
         print '<h2>Result</h2>'
         print '<p>(Ambiguous forms are marked <span class="ambig">yellow</span>; unknown forms are <span class="unknown">orange</span>. You may click on a vowel to add or remove a macron.)</p>'
-        print tokenization.detokenize(True).replace("\n","<br>")
-    
+	print '<div class="prewrap" id="selectme">' + tokenization.detokenize(True) + '</div>'
+        print '<p><input id="selecttext" type="button" value="Copy text"/></p>'
+
     if domacronize and any(i in texttomacronize for i in u"āēīōū"):
         print '<h2>Evaluation</h2>'
-        sys.stdout.write('<div style="white-space: pre-wrap;">')
+        sys.stdout.write('<div class="prewrap">')
         vowelcount = 0
         lengthcorrect = 0
         for (a,b) in zip(list(texttomacronize),list(macronizedtext)):
@@ -633,10 +635,10 @@ if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
     print '<h2>Information</h2>'
     print '<p>This automatic macronizer lets you quickly mark all the long vowels in a Latin text. The expected accuracy on an average classical text is estimated to be about 98% to 99%. Please review the resulting macrons with a critical eye!</p>'
     print '<p>The macronization is performed using a part-of-speech tagger (<a href="http://www.cis.uni-muenchen.de/~schmid/tools/RFTagger/">RFTagger</a>) trained on the <a href="http://www.dh.uni-leipzig.de/wo/projects/ancient-greek-and-latin-dependency-treebank-2-0/">Latin Dependency Treebank</a>, and with macrons provided by a customized version of the Morpheus morphological analyzer. An earlier version of this tool was the subject of my bachelor’s thesis in Language Technology, <i><a href="http://stp.lingfil.uu.se/exarb/arch/winge2015.pdf">Automatic annotation of Latin vowel length</a></i>.</p>'
-    print '<p>Please note that this tool is not designed to perform scansion of poetry. Of course, any text can be macronized, but no metrical analysis is attempted.</p>'
+    print '<p>If you want to run the macronizer locally, or develop it further, you may find the <a href="https://github.com/Alatius/latin-macronizer">source code on GitHub</a>.</p>'
     print '<p>Copyright 2015 Johan Winge. Please send comments to <a href="mailto:johan.winge@gmail.com">johan.winge@gmail.com</a>.</p>'
 
-    print """<script>
+    print """<script type="text/javascript">
     function clickHandler(event) {
       var span = event.target;
       if (span.className == 'ambig' || span.className == 'unknown' || span.className == 'auto') {
@@ -692,6 +694,21 @@ if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
     for (var i = 0; i < autos.length; i++) {
        attachHandler(autos[i]);
     }
+    document.getElementById("selecttext").onclick = function () {
+       var text = document.getElementById("selectme"), range, selection;
+       if (document.body.createTextRange) {
+          range = document.body.createTextRange();
+          range.moveToElementText(text);
+          range.select();
+       } else if (window.getSelection) {
+          selection = window.getSelection();
+          range = document.createRange();
+          range.selectNodeContents(text);
+          selection.removeAllRanges();
+          selection.addRange(range);
+       }
+       var successful = document.execCommand('copy');
+    };
     </script>"""
     print '</body>'
     print '</html>'
