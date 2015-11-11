@@ -184,7 +184,7 @@ class Wordlist():
         for wordform in words - knownwords:
             self.dbcursor.execute("INSERT INTO morpheus (wordform) VALUES (%s)", (wordform, ))
         ## Remove duplicates:
-        self.dbcursor.execute("DELETE FROM morpheus USING morpheus m2 WHERE morpheus.wordform = m2.wordform AND (morpheus.morphtag = m2.morphtag OR morpheus.morphtag IS NULL AND m2.morphtag IS NULL) AND (morpheus.lemma = m2.lemma OR morpheus.lemma IS NULL AND m2.lemma IS NULL) AND morpheus.accented = m2.accented AND morpheus.id > m2.id")
+        self.dbcursor.execute("DELETE FROM morpheus USING morpheus m2 WHERE morpheus.wordform = m2.wordform AND (morpheus.morphtag = m2.morphtag OR morpheus.morphtag IS NULL AND m2.morphtag IS NULL) AND (morpheus.lemma = m2.lemma OR morpheus.lemma IS NULL AND m2.lemma IS NULL) AND (morpheus.accented = m2.accented OR morpheus.accented IS NULL AND m2.accented IS NULL) AND morpheus.id > m2.id")
         self.dbconn.commit()
     #enddef
 #endclass
