@@ -99,18 +99,16 @@ class Wordlist():
         rows = self.dbcursor.fetchall()
         if len(rows) == 0:
             return False
-        elif len(rows) == 1:
-            [wordform, morphtag, lemma, accented] = rows[0]
+        accenteds = set()
+        for [wordform, morphtag, lemma, accented] in rows:
             if accented == None:
                 self.unknownwords.add(wordform)
             else:
-                self.formtoaccent[wordform] = accented
-        else:
-            for [wordform, morphtag, lemma, accented] in rows:
-                if morphtag == None or lemma == None:
-                    raise Exception("Error 4: This should not happen.")
+                accenteds.add(accented)
                 self.formtolemmas[wordform] = self.formtolemmas.get(wordform,[]) + [lemma]
                 self.formtotaglemmaaccents[wordform] = self.formtotaglemmaaccents.get(wordform,[]) + [(morphtag,lemma,accented)]
+        if len(accenteds) == 1:
+            self.formtoaccent[wordform] = accenteds.pop()
         return True
     #enddef
     def crunchwords(self, words):
@@ -166,18 +164,12 @@ class Wordlist():
             if len(lemmatagtoaccenteds) == 0:
                 continue
             knownwords.add(wordform);
-            allaccenteds = set()
             for (lemma, tag), accenteds in lemmatagtoaccenteds.items():
                 # Sometimes there are several different accented forms; prefer 'volvit' to 'voluit', 'Ju_lius' to 'Iu_lius' etc.
                 bestaccented = sorted(accenteds, key = lambda x: x.count('v')+x.count('j')+x.count('J'))[-1]
                 lemmatagtoaccenteds[(lemma, tag)] = bestaccented
-                allaccenteds.add(bestaccented.lower())
-            if len(allaccenteds) > 1:
-                for (lemma, tag), accented in lemmatagtoaccenteds.items():
-                    self.dbcursor.execute("INSERT INTO morpheus (wordform, morphtag, lemma, accented) VALUES (%s,%s,%s,%s)", (wordform, tag, lemma, accented))
-            elif len(allaccenteds) == 1:
-                accented = allaccenteds.pop()
-                self.dbcursor.execute("INSERT INTO morpheus (wordform, accented) VALUES (%s,%s)", (wordform, accented))
+            for (lemma, tag), accented in lemmatagtoaccenteds.items():
+                self.dbcursor.execute("INSERT INTO morpheus (wordform, morphtag, lemma, accented) VALUES (%s,%s,%s,%s)", (wordform, tag, lemma, accented))
         ## The remaining were unknown to Morpheus:
         for wordform in words - knownwords:
             self.dbcursor.execute("INSERT INTO morpheus (wordform) VALUES (%s)", (wordform, ))
