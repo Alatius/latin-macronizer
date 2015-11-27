@@ -223,8 +223,12 @@ else: # Run as a free-standing Python script
             print "  -h  or --help  Show this information."
             exit(0)
         elif arg == "--initialize":
-            wordlist = Wordlist()
-            wordlist.reinitializedatabase()
+            try:
+                wordlist = Wordlist()
+                wordlist.reinitializedatabase()
+            except Exception as inst:
+                print inst.args[0]
+                exit(1)
             exit(0)
         elif arg == "--nomacrons":
             domacronize = False
@@ -253,16 +257,20 @@ else: # Run as a free-standing Python script
             infile = codecs.open(infilename, 'r', 'utf8')
         texttomacronize = infile.read()
     #endif
-    wordlist = Wordlist()
-    tokenization = Tokenization(texttomacronize)
-    wordlist.loadwords(tokenization.allwordforms())
-    newwordforms = tokenization.splittokens(wordlist)
-    wordlist.loadwords(newwordforms)
-    tokenization.addtags()
-    tokenization.addlemmas(wordlist)
-    tokenization.getaccents(wordlist)
-    tokenization.macronize(domacronize, alsomaius, performutov, performitoj)
-    macronizedtext = tokenization.detokenize(False)
+    try:
+        wordlist = Wordlist()
+        tokenization = Tokenization(texttomacronize)
+        wordlist.loadwords(tokenization.allwordforms())
+        newwordforms = tokenization.splittokens(wordlist)
+        wordlist.loadwords(newwordforms)
+        tokenization.addtags()
+        tokenization.addlemmas(wordlist)
+        tokenization.getaccents(wordlist)
+        tokenization.macronize(domacronize, alsomaius, performutov, performitoj)
+        macronizedtext = tokenization.detokenize(False)
+    except Exception as inst:
+        print inst.args[0]
+        exit(1)
     if outfilename == "":
         outfile = codecs.getwriter('utf8')(sys.stdout)
     else:
