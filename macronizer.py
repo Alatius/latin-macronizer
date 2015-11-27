@@ -63,34 +63,34 @@ class Wordlist():
             raise Exception("Error: Could not connect to the database.")
         self.unknownwords = set() # Unknown to Morpheus
         self.formtolemmas = {}
-        self.formtoaccent = {}
         self.formtotaglemmaaccents = {}
+        self.loadwordsfromfile("macrons.txt")
     #enddef
     def reinitializedatabase(self):
         self.dbcursor.execute("DROP TABLE IF EXISTS morpheus")
         self.dbcursor.execute("CREATE TABLE morpheus(id SERIAL PRIMARY KEY, wordform TEXT NOT NULL, morphtag TEXT, lemma TEXT, accented TEXT)")
         self.dbconn.commit()
-        self.populatemorpheustable()
     #enddef
-    def populatemorpheustable(self):
-        vocabularyfile = codecs.open("ldt-vocabulary.txt","r","utf8")
-        words = set()
-        for word in vocabularyfile:
-            words.add(word.strip().lower())
-        self.crunchwords(words)
+    def loadwordsfromfile(self, filename):
+        plaindbfile = codecs.open(filename, 'r', 'utf8')
+        for line in plaindbfile:
+            [wordform, morphtag, lemma, accented] = line.split()
+            self.addwordparse(wordform, morphtag, lemma, accented)
     #enddef
     def loadwords(self, words): # Expects a set of lowercase words
-        unseenwords = set() # Previously not tested with Morpheus
+        unseenwords = set()
         for word in words:
-            if not self.loadword(word):
+            if word in self.formtotaglemmaaccents: # Word is already loaded
+                continue
+            if not self.loadwordfromdb(word): # Could not find word in database
                 unseenwords.add(word)
         if len(unseenwords) > 0:
-            self.crunchwords(unseenwords)
+            self.crunchwords(unseenwords) # Try to parse unseen words with Morpheus, and add result to the database
             for word in unseenwords:
-                if not self.loadword(word):
+                if not self.loadwordfromdb(word):
                     raise Exception("Error: Could not store "+word+" in the database.")
     #enddef
-    def loadword(self, word):
+    def loadwordfromdb(self, word):
         try:
             self.dbcursor.execute("SELECT wordform, morphtag, lemma, accented FROM morpheus WHERE wordform = %s", (word, ))
         except:
@@ -99,17 +99,16 @@ class Wordlist():
         rows = self.dbcursor.fetchall()
         if len(rows) == 0:
             return False
-        accenteds = set()
         for [wordform, morphtag, lemma, accented] in rows:
-            if accented == None:
-                self.unknownwords.add(wordform)
-            else:
-                accenteds.add(accented)
-                self.formtolemmas[wordform] = self.formtolemmas.get(wordform,[]) + [lemma]
-                self.formtotaglemmaaccents[wordform] = self.formtotaglemmaaccents.get(wordform,[]) + [(morphtag,lemma,accented)]
-        if len(accenteds) == 1:
-            self.formtoaccent[wordform] = accenteds.pop()
+            self.addwordparse(wordform, morphtag, lemma, accented)
         return True
+    #enddef
+    def addwordparse(self, wordform, morphtag, lemma, accented):
+        if accented == None:
+            self.unknownwords.add(wordform)
+        else:
+            self.formtolemmas[wordform] = self.formtolemmas.get(wordform,[]) + [lemma]
+            self.formtotaglemmaaccents[wordform] = self.formtotaglemmaaccents.get(wordform,[]) + [(morphtag,lemma,accented)]
     #enddef
     def crunchwords(self, words):
         morphinpfd, morphinpfname = mkstemp()
@@ -466,9 +465,7 @@ class Tokenization:
             wordform = wordform.lower()
             tag = token.tag
             lemma = token.lemma
-            if wordform in wordlist.formtoaccent:
-                token.accented = wordlist.formtoaccent[wordform]
-            elif wordform in wordlist.formtotaglemmaaccents:
+            if wordform in wordlist.formtotaglemmaaccents:
                 candidates = []
                 for (lextag, lexlemma, accented) in wordlist.formtotaglemmaaccents[wordform]:
                     casedist = 1 if (iscapital != lexlemma.replace("-","").istitle()) else 0
