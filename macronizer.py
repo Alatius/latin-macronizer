@@ -63,6 +63,7 @@ class Wordlist():
             raise Exception("Error: Could not connect to the database.")
         self.unknownwords = set() # Unknown to Morpheus
         self.formtolemmas = {}
+        self.formtoaccenteds = {}
         self.formtotaglemmaaccents = {}
         self.loadwordsfromfile("macrons.txt")
     #enddef
@@ -108,6 +109,7 @@ class Wordlist():
             self.unknownwords.add(wordform)
         else:
             self.formtolemmas[wordform] = self.formtolemmas.get(wordform,[]) + [lemma]
+            self.formtoaccenteds[wordform] = self.formtoaccenteds.get(wordform,[]) + [accented]
             self.formtotaglemmaaccents[wordform] = self.formtotaglemmaaccents.get(wordform,[]) + [(morphtag,lemma,accented)]
     #enddef
     def crunchwords(self, words):
@@ -465,7 +467,9 @@ class Tokenization:
             wordform = wordform.lower()
             tag = token.tag
             lemma = token.lemma
-            if wordform in wordlist.formtotaglemmaaccents:
+            if len(set(wordlist.formtoaccenteds.get(wordform,[]))) == 1:
+                token.accented = wordlist.formtoaccenteds[wordform][0]
+            elif wordform in wordlist.formtotaglemmaaccents:
                 candidates = []
                 for (lextag, lexlemma, accented) in wordlist.formtotaglemmaaccents[wordform]:
                     casedist = 1 if (iscapital != lexlemma.replace("-","").istitle()) else 0
