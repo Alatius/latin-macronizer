@@ -18,6 +18,7 @@
 
 MORPHEUSDIR = 'morpheus/'
 RFTAGGERDIR = '/usr/local/bin/'
+USEMORPHEUSDATABASE = True
 DBNAME = 'macronizer'
 DBUSER = 'theusername'
 DBPASSWORD = 'thepassword'
@@ -56,11 +57,12 @@ def touiorthography(txt):
 
 class Wordlist():
     def __init__(self):
-        try:
-            self.dbconn = psycopg2.connect("dbname='%s' host='%s' user='%s' password='%s'" % (DBNAME, DBHOST, DBUSER, DBPASSWORD))
-            self.dbcursor = self.dbconn.cursor()
-        except:
-            raise Exception("Error: Could not connect to the database.")
+        if USEMORPHEUSDATABASE:
+            try:
+                self.dbconn = psycopg2.connect("dbname='%s' host='%s' user='%s' password='%s'" % (DBNAME, DBHOST, DBUSER, DBPASSWORD))
+                self.dbcursor = self.dbconn.cursor()
+            except:
+                raise Exception("Error: Could not connect to the database.")
         self.unknownwords = set() # Unknown to Morpheus
         self.formtolemmas = {}
         self.formtoaccenteds = {}
@@ -68,9 +70,10 @@ class Wordlist():
         self.loadwordsfromfile("macrons.txt")
     #enddef
     def reinitializedatabase(self):
-        self.dbcursor.execute("DROP TABLE IF EXISTS morpheus")
-        self.dbcursor.execute("CREATE TABLE morpheus(id SERIAL PRIMARY KEY, wordform TEXT NOT NULL, morphtag TEXT, lemma TEXT, accented TEXT)")
-        self.dbconn.commit()
+        if USEMORPHEUSDATABASE:
+            self.dbcursor.execute("DROP TABLE IF EXISTS morpheus")
+            self.dbcursor.execute("CREATE TABLE morpheus(id SERIAL PRIMARY KEY, wordform TEXT NOT NULL, morphtag TEXT, lemma TEXT, accented TEXT)")
+            self.dbconn.commit()
     #enddef
     def loadwordsfromfile(self, filename):
         plaindbfile = codecs.open(filename, 'r', 'utf8')
@@ -92,16 +95,19 @@ class Wordlist():
                     raise Exception("Error: Could not store "+word+" in the database.")
     #enddef
     def loadwordfromdb(self, word):
-        try:
-            self.dbcursor.execute("SELECT wordform, morphtag, lemma, accented FROM morpheus WHERE wordform = %s", (word, ))
-        except:
-            raise Exception("Error: Database table is missing. Please initialize the database.")
-        #endtry
-        rows = self.dbcursor.fetchall()
-        if len(rows) == 0:
-            return False
-        for [wordform, morphtag, lemma, accented] in rows:
-            self.addwordparse(wordform, morphtag, lemma, accented)
+        if USEMORPHEUSDATABASE:
+            try:
+                self.dbcursor.execute("SELECT wordform, morphtag, lemma, accented FROM morpheus WHERE wordform = %s", (word, ))
+            except:
+                raise Exception("Error: Database table is missing. Please initialize the database.")
+            #endtry
+            rows = self.dbcursor.fetchall()
+            if len(rows) == 0:
+                return False
+            for [wordform, morphtag, lemma, accented] in rows:
+                self.addwordparse(wordform, morphtag, lemma, accented)
+        else:
+            self.addwordparse(word, None, None, None)
         return True
     #enddef
     def addwordparse(self, wordform, morphtag, lemma, accented):
