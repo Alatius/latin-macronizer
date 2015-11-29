@@ -43,7 +43,7 @@ except ImportError:
 if sys.version_info[0] < 3:
     from itertools import izip as zip
 
-    reload(sys)  # Note to Johan: I am not sure this is necessary, please fix if I am mistaken.
+    reload(sys)
     sys.setdefaultencoding('utf8')
 else:
     pass
@@ -57,6 +57,7 @@ def pairwise(iterable):
     return zip(a, a)
 # enddef
 
+
 def toascii(txt):
     for source, replacement in [(u"æ", "ae"), (u"Æ", "Ae"), (u"œ", "oe"), (u"Œ", "Oe"),
                                 (u"ä", "a"), (u"ë", "e"), (u"ï", "i"), (u"ö", "o"), (u"ü", "u"), (u"ÿ", "u")]:
@@ -64,11 +65,13 @@ def toascii(txt):
     return txt
 # enddef
 
+
 def touiorthography(txt):
     for source, replacement in [(u"v", "u"), (u"U", "V"), (u"j", "i"), (u"J", u"I")]:
         txt = txt.replace(source, replacement)
     return txt
 # enddef
+
 
 class Wordlist():
     def __init__(self):
