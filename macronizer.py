@@ -42,6 +42,7 @@ except ImportError:
 
 if sys.version_info[0] < 3:
     from itertools import izip as zip
+
     reload(sys)  # Note to Johan: I am not sure this is necessary, please fix if I am mistaken.
     sys.setdefaultencoding('utf8')
 else:
@@ -54,23 +55,19 @@ def pairwise(iterable):
     "s -> (s0,s1), (s2,s3), (s4, s5), ..."
     a = iter(iterable)
     return zip(a, a)
-
-
 # enddef
+
 def toascii(txt):
     for source, replacement in [(u"æ", "ae"), (u"Æ", "Ae"), (u"œ", "oe"), (u"Œ", "Oe"),
                                 (u"ä", "a"), (u"ë", "e"), (u"ï", "i"), (u"ö", "o"), (u"ü", "u"), (u"ÿ", "u")]:
         txt = txt.replace(source, replacement)
     return txt
-
-
 # enddef
+
 def touiorthography(txt):
     for source, replacement in [(u"v", "u"), (u"U", "V"), (u"j", "i"), (u"J", u"I")]:
         txt = txt.replace(source, replacement)
     return txt
-
-
 # enddef
 
 class Wordlist():
@@ -87,23 +84,23 @@ class Wordlist():
         self.formtoaccenteds = {}
         self.formtotaglemmaaccents = {}
         self.loadwordsfromfile("macrons.txt")
-
     # enddef
+
     def reinitializedatabase(self):
         if USEMORPHEUSDATABASE:
             self.dbcursor.execute("DROP TABLE IF EXISTS morpheus")
             self.dbcursor.execute(
                 "CREATE TABLE morpheus(id SERIAL PRIMARY KEY, wordform TEXT NOT NULL, morphtag TEXT, lemma TEXT, accented TEXT)")
             self.dbconn.commit()
-
     # enddef
+
     def loadwordsfromfile(self, filename):
         plaindbfile = codecs.open(filename, 'r', 'utf8')
         for line in plaindbfile:
             [wordform, morphtag, lemma, accented] = line.split()
             self.addwordparse(wordform, morphtag, lemma, accented)
-
     # enddef
+
     def loadwords(self, words):  # Expects a set of lowercase words
         unseenwords = set()
         for word in words:
@@ -116,8 +113,8 @@ class Wordlist():
             for word in unseenwords:
                 if not self.loadwordfromdb(word):
                     raise Exception("Error: Could not store " + word + " in the database.")
-
     # enddef
+
     def loadwordfromdb(self, word):
         if USEMORPHEUSDATABASE:
             try:
@@ -134,8 +131,8 @@ class Wordlist():
         else:
             self.addwordparse(word, None, None, None)
         return True
-
     # enddef
+
     def addwordparse(self, wordform, morphtag, lemma, accented):
         if accented == None:
             self.unknownwords.add(wordform)
@@ -144,8 +141,8 @@ class Wordlist():
             self.formtoaccenteds[wordform] = self.formtoaccenteds.get(wordform, []) + [accented]
             self.formtotaglemmaaccents[wordform] = self.formtotaglemmaaccents.get(wordform, []) + [
                 (morphtag, lemma, accented)]
-
     # enddef
+
     def crunchwords(self, words):
         morphinpfd, morphinpfname = mkstemp()
         os.close(morphinpfd)
@@ -217,8 +214,6 @@ class Wordlist():
             "DELETE FROM morpheus USING morpheus m2 WHERE morpheus.wordform = m2.wordform AND (morpheus.morphtag = m2.morphtag OR morpheus.morphtag IS NULL AND m2.morphtag IS NULL) AND (morpheus.lemma = m2.lemma OR morpheus.lemma IS NULL AND m2.lemma IS NULL) AND (morpheus.accented = m2.accented OR morpheus.accented IS NULL AND m2.accented IS NULL) AND morpheus.id > m2.id")
         self.dbconn.commit()
         # enddef
-
-
 # endclass
 
 
@@ -236,8 +231,8 @@ class Token:
         self.endssentence = False
         self.isunknown = False
         self.isambiguous = False
-
     # enddef
+
     def split(self, pos, reorder):
         newtokena = Token(self.token[:-pos])
         newtokenb = Token(self.token[-pos:])
@@ -247,12 +242,12 @@ class Token:
             return [newtokenb, newtokena]
         else:
             return [newtokena, newtokenb]
-
     # enddef
+
     def show(self):
         print(self.token + "\t" + self.tag + "\t" + self.lemma + "\t" + self.accented).expandtabs(16)
-
     # enddef
+
     def macronize(self, domacronize, alsomaius, performutov, performitoj):
         plain = self.token
         accented = self.accented
@@ -298,8 +293,8 @@ class Token:
 
         def delcost(b):
             return 2
-
         # enddef
+
         n = len(plain) + 1
         m = len(accented) + 1
         distance = [[0 for i in range(m)] for j in range(n)]
@@ -343,8 +338,6 @@ class Token:
                 result = plain[i] + result
         self.macronized = result
         # enddef
-
-
 # endclass
 
 class Tokenization:
@@ -365,7 +358,6 @@ class Tokenization:
                 possiblesentenceend = False
                 sentencehasended = True
             self.tokens.append(token)
-
     # enddef
 
     def allwordforms(self):
@@ -374,7 +366,6 @@ class Tokenization:
             if token.isword:
                 words.add(toascii(token.token).lower())
         return words
-
     # enddef
 
     dividenda = {"nequid": 4, "attamen": 5, "unusquisque": 7, "unaquaeque": 7, "unumquodque": 7, "uniuscuiusque": 8,
@@ -431,7 +422,6 @@ class Tokenization:
                     newtokens.append(part)
         self.tokens = newtokens
         return newwords
-
     # enddef
 
     def show(self):
@@ -442,7 +432,6 @@ class Tokenization:
                 print
         if len(self.tokens) > 500:
             print("... (truncated) ...")
-
     # enddef
 
     def addtags(self):
@@ -474,7 +463,6 @@ class Tokenization:
         fromtaggerfile.close()
         os.remove(totaggerfname)
         os.remove(fromtaggerfname)
-
     # enddef
 
     def addlemmas(self, wordlist):
@@ -507,7 +495,6 @@ class Tokenization:
                         bestlemma = lexlemma
             # endif
             token.lemma = bestlemma
-
     # enddef
 
     def getaccents(self, wordlist):
@@ -527,7 +514,6 @@ class Tokenization:
                     current_row.append(min(insertions, deletions, substitutions))
                 previous_row = current_row
             return previous_row[-1]
-
         # enddef
 
         tagtoendings = {}
@@ -572,13 +558,11 @@ class Tokenization:
                             token.accented = wordform[:-len(plainending)] + accentedending
                             break
                     token.isunknown = True
-
     # enddef
 
     def macronize(self, domacronize, alsomaius, performutov, performitoj):
         for token in self.tokens:
             token.macronize(domacronize, alsomaius, performutov, performitoj)
-
     # enddef
 
     def detokenize(self, markambiguous):
@@ -590,8 +574,8 @@ class Tokenization:
                 else:
                     result = result + char
             return result
-
         # enddef
+
         result = ""
         enclitic = ""
         for token in self.tokens:
@@ -614,5 +598,4 @@ class Tokenization:
                 enclitic = ""
         return result
         # enddef
-
 # endclass
