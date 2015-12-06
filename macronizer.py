@@ -25,14 +25,12 @@ DBPASSWORD = 'thepassword'
 DBHOST = 'localhost'
 
 import psycopg2
-import cgi
 from tempfile import mkstemp
 import re
 import sys
 import os
 import codecs
 from itertools import izip
-from xml.sax.saxutils import escape
 import postags
 
 reload(sys)  
@@ -536,3 +534,69 @@ class Tokenization:
         return result
     #enddef
 #endclass
+
+class Macronizer:
+    def __init__(self):
+        self.wordlist = Wordlist()
+        self.tokenization = Tokenization("")
+    #enddef
+    def settext(self, text):
+        self.tokenization = Tokenization(text)
+        self.wordlist.loadwords(self.tokenization.allwordforms())
+        newwordforms = self.tokenization.splittokens(self.wordlist)
+        self.wordlist.loadwords(newwordforms)
+        self.tokenization.addtags()
+        self.tokenization.addlemmas(self.wordlist)
+        self.tokenization.getaccents(self.wordlist)
+    #enddef
+    def gettext(self, domacronize=True, alsomaius=False, performutov=False, performitoj=False, markambigs=False):
+        self.tokenization.macronize(domacronize, alsomaius, performutov, performitoj)
+        return self.tokenization.detokenize(markambigs)
+    #enddef
+    def macronize(self, text, domacronize=True, alsomaius=False, performutov=False, performitoj=False, markambigs=False):
+        self.settext(text)
+        return self.gettext(domacronize, alsomaius, performutov, performitoj, markambigs)
+    #enddef
+#endclass
+
+if __name__ == "__main__":
+    print("""Library for marking Latin texts with macrons. Copyright 2015 Johan Winge.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Minimal example of usage:
+    from macronizer import Macronizer
+    macronizer = Macronizer()
+    macronizedtext = macronizer.macronize("Iam primum omnium satis constat Troia capta in ceteros saevitum esse Troianos")
+
+Initializing Macronizer() may take a couple of seconds, so if you want
+to mark macrons in several strings, you are better off reusing the
+same Macronizer object.
+
+The macronizer function takes a couple of optional parameters, which
+control in what way the input string is transformed:
+    domacronize: mark long vowels; default True
+    alsomaius: also mark vowels before consonantic i; default False
+    performutov: change consonantic u to v; default False
+    performitoj: similarly change i to j; default False
+    markambigs: mark up the text in various ways with HTML tags; default False
+
+If you want to transform the same text in different ways, you should use
+the separate gettext and settext functions, instead of macronize:
+    from macronizer import Macronizer
+    macronizer = Macronizer()
+    macronizer.settext("Iam primum omnium")
+    print(macronizer.gettext())
+    print(macronizer.gettext(domacronize=False, performitoj=True))
+""")

@@ -18,11 +18,13 @@
 
 MACRONIZERLIB = '.'
 
+import cgi
 import os
-os.chdir(MACRONIZERLIB)
 import sys
 import codecs
-from macronizer import *
+from xml.sax.saxutils import escape
+os.chdir(MACRONIZERLIB)
+from macronizer import Macronizer
 
 if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
     scriptname = os.environ['REQUEST_URI'].split('/')[-1]
@@ -58,16 +60,9 @@ if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
         macronizedtext = ""
     else:
         try:
-            wordlist = Wordlist()
-            tokenization = Tokenization(texttomacronize)
-            wordlist.loadwords(tokenization.allwordforms())
-            newwordforms = tokenization.splittokens(wordlist)
-            wordlist.loadwords(newwordforms)
-            tokenization.addtags()
-            tokenization.addlemmas(wordlist)
-            tokenization.getaccents(wordlist)
-            tokenization.macronize(domacronize, alsomaius, performutov, performitoj)
-            macronizedtext = tokenization.detokenize(False)
+            macronizer = Macronizer()
+            macronizer.settext(texttomacronize)
+            macronizedtext = macronizer.gettext(domacronize, alsomaius, performutov, performitoj, markambigs=False)
             sys.stdout.write(macronizedtext)
         except Exception as inst:
             print inst.args[0]
@@ -83,15 +78,15 @@ if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
     if macronizedtext != "":
         print '<h2>Result</h2>'
         print '<p>(Ambiguous forms are marked <span class="ambig">yellow</span>; unknown forms are <span class="unknown">orange</span>. You may click on a vowel to add or remove a macron.)</p>'
-        print '<div class="prewrap" id="selectme">' + tokenization.detokenize(True) + '</div>'
+        print '<div class="prewrap" id="selectme">' + macronizer.tokenization.detokenize(True) + '</div>'
         print '<p><input id="selecttext" type="button" value="Copy text"/></p>'
 
-    if domacronize and any(i in texttomacronize for i in u"āēīōū"):
+    if macronizedtext != "" and domacronize and any(i in texttomacronize for i in u"āēīōū"):
         print '<h2>Evaluation</h2>'
         sys.stdout.write('<div class="prewrap">')
         vowelcount = 0
         lengthcorrect = 0
-        for (a,b) in zip(list(texttomacronize),list(macronizedtext)):
+        for (a,b) in zip(list(texttomacronize), list(macronizedtext)):
             clean = postags.removemacrons(b)
             if touiorthography(toascii(clean)) != touiorthography(toascii(postags.removemacrons(a))):
                 raise Exception("Error: Text mismatch.")
@@ -109,11 +104,11 @@ if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
         print '</p>'
     
     if macronizedtext != "":
-        if len(tokenization.tokens) > 2:
-            if tokenization.tokens[0].token == "DEBUG":
+        if len(macronizer.tokenization.tokens) > 2:
+            if macronizer.tokenization.tokens[0].token == "DEBUG":
                 print '<h2>Debug info</h2>'
                 print '<pre>'
-                tokenization.show()
+                macronizer.tokenization.show()
                 print '</pre>'
     
     print '<h2>Information</h2>'
@@ -224,8 +219,8 @@ else: # Run as a free-standing Python script
             exit(0)
         elif arg == "--initialize":
             try:
-                wordlist = Wordlist()
-                wordlist.reinitializedatabase()
+                macronizer = Macronizer()
+                macronizer.wordlist.reinitializedatabase()
             except Exception as inst:
                 print inst.args[0]
                 exit(1)
@@ -248,34 +243,27 @@ else: # Run as a free-standing Python script
             print "Unknown argument:", arg
             exit(1)
     #endfor
-    if dotest:
-        texttomacronize = "O orbis terrarum te saluto!\n"
-    else:
-        if infilename == "":
-            infile = codecs.getreader('utf-8')(sys.stdin)
-        else:
-            infile = codecs.open(infilename, 'r', 'utf8')
-        texttomacronize = infile.read()
-    #endif
     try:
-        wordlist = Wordlist()
-        tokenization = Tokenization(texttomacronize)
-        wordlist.loadwords(tokenization.allwordforms())
-        newwordforms = tokenization.splittokens(wordlist)
-        wordlist.loadwords(newwordforms)
-        tokenization.addtags()
-        tokenization.addlemmas(wordlist)
-        tokenization.getaccents(wordlist)
-        tokenization.macronize(domacronize, alsomaius, performutov, performitoj)
-        macronizedtext = tokenization.detokenize(False)
+        macronizer = Macronizer()
+        if dotest:
+            texttomacronize = "O orbis terrarum te saluto!\n"
+        else:
+            if infilename == "":
+                infile = codecs.getreader('utf-8')(sys.stdin)
+            else:
+                infile = codecs.open(infilename, 'r', 'utf8')
+            texttomacronize = infile.read()
+        #endif
+        macronizer.settext(texttomacronize)
+        macronizedtext = macronizer.gettext(domacronize, alsomaius, performutov, performitoj, markambigs=False)
+        if outfilename == "":
+            outfile = codecs.getwriter('utf8')(sys.stdout)
+        else:
+            outfile = codecs.open(outfilename, 'w', 'utf8')
+        outfile.write(macronizedtext)
     except Exception as inst:
         print inst.args[0]
         exit(1)
-    if outfilename == "":
-        outfile = codecs.getwriter('utf8')(sys.stdout)
-    else:
-        outfile = codecs.open(outfilename, 'w', 'utf8')
-    outfile.write(macronizedtext)
 
 #endif
 
