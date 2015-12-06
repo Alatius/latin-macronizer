@@ -113,7 +113,7 @@ class Wordlist():
             self.unknownwords.add(wordform)
         else:
             self.formtolemmas[wordform] = self.formtolemmas.get(wordform,[]) + [lemma]
-            self.formtoaccenteds[wordform] = self.formtoaccenteds.get(wordform,[]) + [accented]
+            self.formtoaccenteds[wordform] = self.formtoaccenteds.get(wordform,[]) + [accented.lower()]
             self.formtotaglemmaaccents[wordform] = self.formtotaglemmaaccents.get(wordform,[]) + [(morphtag,lemma,accented)]
     #enddef
     def crunchwords(self, words):
