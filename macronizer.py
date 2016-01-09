@@ -355,7 +355,7 @@ class Tokenization:
                     tobeadded = oldtoken.split(Tokenization.dividenda[oldlc],False)                 
                 elif len(oldlc) > 3 and oldlc.endswith("que"):
                     tobeadded = oldtoken.split(3,True)
-                elif len(oldlc) > 2 and oldlc.endswith(("ve","ue","ne")):
+                elif len(oldlc) > 2 and oldlc.endswith(("ve", "ue", "ne", "st")):
                     tobeadded = oldtoken.split(2,True)
             #endif
             if len(tobeadded) == 0:
