@@ -116,7 +116,7 @@ def LDT2Parse(LDTtag):
         #parse[PART_OF_SPEECH] = PARTICIPLE
         parse[PART_OF_SPEECH] = VERB
         parse[MOOD] = PARTICIPLE
-        print "Note: 'participle' used as POS"
+        print("Note: 'participle' used as POS")
     elif LDTtag[0] == 'a':
         parse[PART_OF_SPEECH] = ADJECTIVE
     elif LDTtag[0] == 'd':
@@ -136,7 +136,7 @@ def LDT2Parse(LDTtag):
     elif LDTtag[0] == 'u':
         parse[PART_OF_SPEECH] = PUNCTUATION
     else:
-        print "Warning: unknown part of speech:", LDTtag[0]
+        print("Warning: unknown part of speech:", LDTtag[0])
 
     if LDTtag[1] == '-':
         pass
@@ -147,7 +147,7 @@ def LDT2Parse(LDTtag):
     elif LDTtag[1] == '3':
         parse[PERSON] = THIRD_PERSON
     else:
-        print "Warning: unknown person:", LDTtag[1]
+        print("Warning: unknown person:", LDTtag[1])
 
     if LDTtag[2] == '-':
         pass
@@ -156,7 +156,7 @@ def LDT2Parse(LDTtag):
     elif LDTtag[2] == 'p':
         parse[NUMBER] = PLURAL
     else:
-        print "Warning: unknown number:", LDTtag[2]
+        print("Warning: unknown number:", LDTtag[2])
 
     if LDTtag[3] == '-':
         pass
@@ -173,7 +173,7 @@ def LDT2Parse(LDTtag):
     elif LDTtag[3] == 'f':
         parse[TENSE] = FUTURE
     else:
-        print "Warning: unknown tense:", LDTtag[3]
+        print("Warning: unknown tense:", LDTtag[3])
 
     if LDTtag[4] == '-':
         pass
@@ -194,7 +194,7 @@ def LDT2Parse(LDTtag):
     elif LDTtag[4] == 'u':
         parse[MOOD] = SUPINE
     else:
-        print "Warning: unknown mood:", LDTtag[4]
+        print("Warning: unknown mood:", LDTtag[4])
 
     if LDTtag[5] == '-':
         pass
@@ -203,7 +203,7 @@ def LDT2Parse(LDTtag):
     elif LDTtag[5] == 'p':
         parse[VOICE] = PASSIVE
     else:
-        print "Warning: unknown voice:", LDTtag[5]
+        print("Warning: unknown voice:", LDTtag[5])
 
     if LDTtag[6] == '-':
         pass
@@ -214,7 +214,7 @@ def LDT2Parse(LDTtag):
     elif LDTtag[6] == 'n':
         parse[GENDER] = NEUTER
     else:
-        print "Warning: unknown gender:", LDTtag[6]
+        print("Warning: unknown gender:", LDTtag[6])
 
     if LDTtag[7] == '-':
         pass
@@ -233,7 +233,7 @@ def LDT2Parse(LDTtag):
     elif LDTtag[7] == 'l':
         parse[CASE] = LOCATIVE
     else:
-        print "Warning: unknown case:", LDTtag[7]
+        print("Warning: unknown case:", LDTtag[7])
 
     if LDTtag[8] == '-':
         pass
@@ -243,7 +243,7 @@ def LDT2Parse(LDTtag):
         parse[DEGREE] = SUPERLATIVE
     # POSITIVE not in use? (default)
     else:
-        print "Warning: unknown degree:", LDTtag[8]
+        print("Warning: unknown degree:", LDTtag[8])
 
     return parse
 #enddef
@@ -420,7 +420,7 @@ def Morpheus2Parses(wordform, NL):
         lemma = accented.split(",")[1]
         accented = accented.split(",")[0]
     else:
-        print "Warning, should not happen!"
+        print("Warning, should not happen!")
         exit(1)
     parse[LEMMA] = lemma
     parse[ACCENTEDFORM] = filteraccents(accented)
@@ -467,7 +467,7 @@ def Morpheus2Parses(wordform, NL):
         else :
             parse[PART_OF_SPEECH] = NOUN
     else:
-        print "Warning: Unknown Morpheus Part-of-Speech tag: " + partOfSpeechAbbrev
+        print("Warning: Unknown Morpheus Part-of-Speech tag: " + partOfSpeechAbbrev)
 
     def setfeature(parse, code, overwrite=False):
         featfound = False
@@ -479,9 +479,9 @@ def Morpheus2Parses(wordform, NL):
                 elif parse.get(feature) == code:
                     featfound = True
                 else:
-                    print "Warning: Feature", feature, "already set! Old:", parse.get(feature), "New:",code
+                    print("Warning: Feature", feature, "already set! Old:", parse.get(feature), "New:",code)
         #if not featfound:
-        #    print "Warning: Code", code, "not mapped to feature!"
+        #    print("Warning: Code", code, "not mapped to feature!")
     #enddef
 
     groupedParses = [parse]
@@ -714,7 +714,7 @@ def Parses2ProielTags(parses):
 # To help select the best alternative, define a measure to compare how similar tags are.
 def tagDist(tag1, tag2):
     if not ( len(tag1) == len(tag2) == 9 or len(tag1) == len(tag2) == 12 ):
-        print "Warning: Strange or mismatching tags!", tag1, tag2
+        print("Warning: Strange or mismatching tags!", tag1, tag2)
         exit(0)
     def isNomen(tag):
         if tag[0] == 'n' or tag[0] == 'a' or tag[0] == 'v' and (tag[3:6] == 'rpp' or tag[3:6] == 'ppa'):
