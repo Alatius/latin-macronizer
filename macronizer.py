@@ -18,7 +18,7 @@
 
 MORPHEUSDIR = 'morpheus/'
 RFTAGGERDIR = '/usr/local/bin/'
-USEMORPHEUSDATABASE = False
+USEMORPHEUSDATABASE = True
 DBNAME = 'macronizer'
 DBUSER = 'theusername'
 DBPASSWORD = 'thepassword'

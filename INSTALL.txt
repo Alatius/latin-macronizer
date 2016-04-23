@@ -61,11 +61,43 @@ Now, edit the main script macronizer.py and set the constants in the beginning t
 
 Finally, initialize the macronizer:
 
-  python macronizer.py --initialize
+  python macronize.py --initialize
 
 You can now test it with the following command
 
-  python macronizer.py --test
+  python macronize.py --test
 
 Good luck! In case of problems, contact me at johan.winge@gmail.com and I will do my best to assist you.
+
+If all is well so far, you may now also consider running the web script
+locally. The right way to set up Apache may vary on different systems,
+and you have many options to configure in the way you prefer, so this
+is just a quick and dirty guide to get something working. Adapt to your
+own needs!
+
+  sudo apt-get install apache2
+
+  sudo a2enmod cgi
+
+  sudo gedit /etc/apache2/apache2.conf
+
+Edit the following part to look like this:
+
+   <Directory /var/www/>
+	Options Indexes FollowSymLinks ExecCGI
+	AddHandler cgi-script .py
+	AllowOverride None
+	Require all granted
+  </Directory>
+
+Then save the configuration, and restart:
+
+  sudo /etc/init.d/apache2 restart
+
+Make a link to the script, and make it executable:
+
+  sudo ln -s /complete/path/to/macronize.py /var/www/html/macronize.py
+  sudo chmod a+x /var/www/html/macronize.py
+
+Hopefully, you can now find the macronizer working at http://localhost/macronize.py
 
