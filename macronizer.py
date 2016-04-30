@@ -528,13 +528,16 @@ class Tokenization:
                     casedist = 1 if (iscapital != lexlemma.replace("-", "").istitle()) else 0
                     tagdist = postags.tagDist(tag, lextag)
                     lemdist = levenshtein(lemma, lexlemma)
-                    if token.startssentence:
+                    if token.startssentence and iscapital:
                         candidates.append((0, tagdist, lemdist, accented))
                     else:
                         candidates.append((casedist, tagdist, lemdist, accented))
                 candidates.sort()
                 token.accented = candidates[0][3]
-                token.isambiguous = True
+                if len(set([c[3] for c in candidates if c[0] == 0])) == 1:
+                    token.isambiguous = False
+                else:
+                    token.isambiguous = True
             else:
                 ## Unknown word, but attempt to mark vowels in ending:
                 ## To-do: Better support for different capitalization and orthography
