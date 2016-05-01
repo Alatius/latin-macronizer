@@ -4,7 +4,7 @@
 import postags
 import codecs
 
-macronsfile = codecs.open("macrons.txt","r","utf8")
+macronsfile = codecs.open("macrons-full.txt","r","utf8")
 lexicon = codecs.open("rftagger-lexicon.txt","w","utf8")
 
 tagtoaccents = {}
@@ -20,7 +20,7 @@ def escapedaccents(txt):
                                 ("A_",u"Ā"),("E_",u"Ē"),("I_",u"Ī"),("O_",u"Ō"),("U_",u"Ū"),("Y_",u"Ȳ")]:
         txt = txt.replace(source,replacement)
     return txt
-#enddef
+
 endingsfile = codecs.open("macronized-endings.txt","w","utf8")
 for tag in tagtoaccents:
     endingfreqs = {}
