@@ -46,7 +46,6 @@ else:
     # zip() is a builtin in Python 3.x
     # Python 3 doesn't use sys.setdefaultencoding()
 
-
 def pairwise(iterable):
     "s -> (s0,s1), (s2,s3), (s4, s5), ..."
     a = iter(iterable)
@@ -79,7 +78,10 @@ class Wordlist():
         self.formtolemmas = {}
         self.formtoaccenteds = {}
         self.formtotaglemmaaccents = {}
-        self.loadwordsfromfile("macrons.txt")
+        if USEMORPHEUSDATABASE:
+            self.loadwordsfromfile("macrons-minimal.txt")
+        else:
+            self.loadwordsfromfile("macrons-full.txt")
     # enddef
 
     def reinitializedatabase(self):
@@ -132,9 +134,9 @@ class Wordlist():
         if accented == None:
             self.unknownwords.add(wordform)
         else:
-            self.formtolemmas[wordform] = self.formtolemmas.get(wordform,[]) + [lemma]
-            self.formtoaccenteds[wordform] = self.formtoaccenteds.get(wordform,[]) + [accented.lower()]
-            self.formtotaglemmaaccents[wordform] = self.formtotaglemmaaccents.get(wordform,[]) + [(morphtag,lemma,accented)]
+            self.formtolemmas[wordform] = self.formtolemmas.get(wordform, []) + [lemma]
+            self.formtoaccenteds[wordform] = self.formtoaccenteds.get(wordform, []) + [accented.lower()]
+            self.formtotaglemmaaccents[wordform] = self.formtotaglemmaaccents.get(wordform, []) + [(morphtag, lemma, accented)]
     # enddef
 
     def crunchwords(self, words):
@@ -173,19 +175,9 @@ class Wordlist():
                 accented = parse[postags.ACCENTEDFORM]
                 if parse[postags.LEMMA].startswith("trans-") and accented[3] != "_":  # Work around shortcoming in Morpheus
                     accented = accented[:3] + "_" + accented[3:]
-                if accented == "male_" or accented == "cave_":
-                    accented = accented[:-1]
-                if accented == "fame":
-                    accented += "_"
                 parse[postags.ACCENTEDFORM] = accented
                 # Remove highly unlikely alternatives:
-                if (accented not in ["me_nse_", "fabuli_s", "vi_ri_", "vi_ro_", "vi_rum", "vi_ro_rum", "vi_ri_s",
-                                     "vi_ro_s"] and
-                        not (accented.startswith("vi_ct") and lemma == "vivo") and
-                        not (accented.startswith("ori_") and lemma == "orior") and
-                        not (accented.startswith("mori_") and lemma == "morior") and
-                        not (accented.startswith("conci_") and lemma == "concitus") and
-                            lemma not in ["pareas", "de_-escendo", "de_-eo", "de_-edo", "Nus", "progredio", "aris"]):
+                if lemma not in ["pareas", "de_-escendo", "de_-eo", "de_-edo", "Nus", "progredio", "aris"]:
                     tag = postags.Parse2LDT(parse)
                     lemmatagtoaccenteds[(lemma, tag)] = lemmatagtoaccenteds.get((lemma, tag), []) + [accented]
             if len(lemmatagtoaccenteds) == 0:
@@ -397,9 +389,9 @@ class Tokenization:
                 elif oldlc in Tokenization.dividenda:
                     tobeadded = oldtoken.split(Tokenization.dividenda[oldlc], False)
                 elif len(oldlc) > 3 and oldlc.endswith("que"):
-                    tobeadded = oldtoken.split(3,True)
+                    tobeadded = oldtoken.split(3, True)
                 elif len(oldlc) > 2 and oldlc.endswith(("ve", "ue", "ne", "st")):
-                    tobeadded = oldtoken.split(2,True)
+                    tobeadded = oldtoken.split(2, True)
             #endif
             if len(tobeadded) == 0:
                 newtokens.append(oldtoken)
