@@ -4,7 +4,7 @@
 import postags
 import codecs
 
-macronsfile = codecs.open("macrons-full.txt","r","utf8")
+macronsfile = codecs.open("macrons.txt","r","utf8")
 lexicon = codecs.open("rftagger-lexicon.txt","w","utf8")
 
 tagtoaccents = {}
