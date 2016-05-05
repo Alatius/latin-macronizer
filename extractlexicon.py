@@ -12,6 +12,8 @@ tagtoaccents = {}
 for line in macronsfile:
     [wordform, tag, lemma, accented] = line.split()
     tagtoaccents[tag] = tagtoaccents.get(tag,[]) + [postags.unicodeaccents(accented)]
+    if accented[0].isupper():
+        wordform = wordform.title()
     tag = '.'.join(list(tag))
     lexicon.write(wordform + '\t' + tag + '\t' + lemma + '\n')
 
