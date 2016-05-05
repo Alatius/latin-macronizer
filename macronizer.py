@@ -78,9 +78,7 @@ class Wordlist():
         self.formtolemmas = {}
         self.formtoaccenteds = {}
         self.formtotaglemmaaccents = {}
-        if USEMORPHEUSDATABASE:
-            self.loadwordsfromfile("macrons-minimal.txt")
-        else:
+        if not USEMORPHEUSDATABASE:
             self.loadwordsfromfile("macrons-full.txt")
     # enddef
 
@@ -89,14 +87,19 @@ class Wordlist():
             self.dbcursor.execute("DROP TABLE IF EXISTS morpheus")
             self.dbcursor.execute(
                 "CREATE TABLE morpheus(id SERIAL PRIMARY KEY, wordform TEXT NOT NULL, morphtag TEXT, lemma TEXT, accented TEXT)")
+            self.dbcursor.execute("CREATE INDEX morpheus_wordform_index ON morpheus(wordform)")
+            self.loadwordsfromfile("macrons-minimal.txt", storeindb = True)
             self.dbconn.commit()
     # enddef
 
-    def loadwordsfromfile(self, filename):
+    def loadwordsfromfile(self, filename, storeindb = False):
         plaindbfile = codecs.open(filename, 'r', 'utf8')
         for line in plaindbfile:
             [wordform, morphtag, lemma, accented] = line.split()
             self.addwordparse(wordform, morphtag, lemma, accented)
+            if storeindb and USEMORPHEUSDATABASE:
+                self.dbcursor.execute("INSERT INTO morpheus (wordform, morphtag, lemma, accented) VALUES (%s,%s,%s,%s)",
+                                      (wordform, morphtag, lemma, accented))
     # enddef
 
     def loadwords(self, words):  # Expects a set of lowercase words
