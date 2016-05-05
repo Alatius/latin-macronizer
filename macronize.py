@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright 2015 Johan Winge
+# Copyright 2015-2016 Johan Winge
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -43,10 +43,10 @@ if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <style type="text/css">
-  span.wrong {color:red;}
-  span.ambig {background-color:yellow;}
-  span.unknown {background-color:orange;}
-  span.fixed {background-color:lightgreen;}
+  span.wrong {background-color: #ff6666;}
+  span.ambig {background-color: yellow;}
+  span.unknown {background-color: orange;}
+  span.fixed {background-color: lightgreen;}
   div.prewrap {white-space: pre-wrap;}
 </style>
 <title>A Latin Macronizer</title>
@@ -89,6 +89,11 @@ if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
                 print('<pre>')
                 macronizer.tokenization.show()
                 print('</pre>')
+            if macronizer.tokenization.tokens[0].token == "EVALUATE":
+                print('<h2>Evaluation</h2>')
+                (accuracy, evaluatedtext) = macronizer.evaluate(texttomacronize[9:], macronizedtext[9:])
+                print('<div class="prewrap">%s</div>' % (evaluatedtext))
+                print('<p>Accuracy: %f%%</p>' % (accuracy * 100))
     
     print("""<h2>Information</h2>
 
@@ -195,6 +200,7 @@ else: # Run as a free-standing Python script
     performutov = False
     performitoj = False
     dotest = False
+    doevaluation = False
     infilename = ""
     outfilename = ""
     iterator = sys.argv.__iter__()
@@ -211,6 +217,7 @@ else: # Run as a free-standing Python script
             print("  --maius        Do mark vowels also in māius and such.")
             print("  --test         Mark vowels in a short example text.")
             print("  --initialize   Reset the database (only necessary once).")
+            print("  --evaluate     Test accuracy against input gold standard.")
             print("  -h  or --help  Show this information.")
             exit(0)
         elif arg == "--initialize":
@@ -235,6 +242,8 @@ else: # Run as a free-standing Python script
             outfilename = next(iterator)
         elif arg == "--test":
             dotest = True
+        elif arg == "--evaluate":
+            doevaluation = True
         else:
             print("Unknown argument:", arg)
             exit(1)
@@ -255,14 +264,18 @@ else: # Run as a free-standing Python script
         #endif
         macronizer.settext(texttomacronize)
         macronizedtext = macronizer.gettext(domacronize, alsomaius, performutov, performitoj, markambigs=False)
-        if outfilename == "":
-            if sys.version_info[0] < 3:
-                outfile = codecs.getwriter('utf8')(sys.stdout)
-            else:
-                outfile = sys.stdout
+	if doevaluation:
+            (accuracy, dummy) = macronizer.evaluate(texttomacronize, macronizedtext)
+            print("Accuracy: %f" % (accuracy*100))
         else:
-            outfile = codecs.open(outfilename, 'w', 'utf8')
-        outfile.write(macronizedtext)
+            if outfilename == "":
+                if sys.version_info[0] < 3:
+                    outfile = codecs.getwriter('utf8')(sys.stdout)
+                else:
+                    outfile = sys.stdout
+            else:
+                outfile = codecs.open(outfilename, 'w', 'utf8')
+            outfile.write(macronizedtext)
     except Exception as inst:
         print(inst.args[0])
         exit(1)

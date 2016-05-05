@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright 2015 Johan Winge
+# Copyright 2015-2016 Johan Winge
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -579,14 +579,15 @@ class Tokenization:
                     result += unicodetext + enclitic
                 enclitic = ""
         return result
-    #enddef
-#endclass
+    # enddef
+# endclass
 
 class Macronizer:
     def __init__(self):
         self.wordlist = Wordlist()
         self.tokenization = Tokenization("")
-    #enddef
+    # enddef
+
     def settext(self, text):
         self.tokenization = Tokenization(text)
         self.wordlist.loadwords(self.tokenization.allwordforms())
@@ -595,19 +596,42 @@ class Macronizer:
         self.tokenization.addtags()
         self.tokenization.addlemmas(self.wordlist)
         self.tokenization.getaccents(self.wordlist)
-    #enddef
+    # enddef
+
     def gettext(self, domacronize=True, alsomaius=False, performutov=False, performitoj=False, markambigs=False):
         self.tokenization.macronize(domacronize, alsomaius, performutov, performitoj)
         return self.tokenization.detokenize(markambigs)
-    #enddef
+    # enddef
+
     def macronize(self, text, domacronize=True, alsomaius=False, performutov=False, performitoj=False, markambigs=False):
         self.settext(text)
         return self.gettext(domacronize, alsomaius, performutov, performitoj, markambigs)
-    #enddef
-#endclass
+    # enddef
+
+    @staticmethod
+    def evaluate(goldstandard, macronizedtext):
+        vowelcount = 0
+        lengthcorrect = 0
+        outtext = []
+        for (a, b) in zip(list(goldstandard), list(macronizedtext)):
+            plaina = postags.removemacrons(a)
+            plainb = postags.removemacrons(b)
+            if touiorthography(toascii(plaina)) != touiorthography(toascii(plainb)):
+                raise Exception("Error: Text mismatch.")
+            if plaina in "AEIOUYaeiouy":
+                vowelcount += 1
+                if a == b:
+                    lengthcorrect += 1
+            if toascii(touiorthography(a)) == toascii(touiorthography(b)):
+                outtext.append(b)
+            else:
+                outtext.append('<span class="wrong">%s</span>' % b)
+        return (lengthcorrect / float(vowelcount), "".join(outtext))
+    # enddef
+# endclass
 
 if __name__ == "__main__":
-    print("""Library for marking Latin texts with macrons. Copyright 2015 Johan Winge.
+    print("""Library for marking Latin texts with macrons. Copyright 2015-2016 Johan Winge.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -646,4 +670,7 @@ the separate gettext and settext functions, instead of macronize:
     macronizer.settext("Iam primum omnium")
     print(macronizer.gettext())
     print(macronizer.gettext(domacronize=False, performitoj=True))
+
+NOTE: If you are not a developer, you probably want to call the front end
+macronize.py instead.
 """)
