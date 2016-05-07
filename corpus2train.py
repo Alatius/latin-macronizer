@@ -5,6 +5,7 @@ import codecs
 import re
 
 corpuspath = "treebank_data/v1.6/latin/data/"
+supplement = codecs.open("corpus-supplement.txt","r","utf8")
 treebankfile = codecs.open("ldt-corpus.txt","w","utf8")
 vocabularyfile = codecs.open("ldt-vocabulary.txt","w","utf8")
 vocabulary = set()
@@ -45,6 +46,8 @@ for f in ["1999.02.0010",
         treebankfile.write(".\tu.-.-.-.-.-.-.-.-\tPERIOD1\n")
         treebankfile.write("\n")
 
+for line in supplement:
+    treebankfile.write(line)
+
 for word in vocabulary:
     vocabularyfile.write(word+"\n")
-

@@ -1,0 +1,9 @@
+Omnis	a.-.s.-.-.-.f.n.-	omnis
+ingenuorum	n.-.p.-.-.-.m.g.-	ingenuus
+adest	v.3.s.p.i.a.-.-.-	adsum
+multitudo	n.-.s.-.-.-.f.n.-	multitudo
+,	u.-.-.-.-.-.-.-.-	comma
+etiam	c.-.-.-.-.-.-.-.-	etiam
+tenuissimorum	a.-.p.-.-.-.m.g.s	tenuis
+.	u.-.-.-.-.-.-.-.-	PERIOD1
+
