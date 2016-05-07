@@ -521,19 +521,19 @@ class Tokenization:
             elif wordform in wordlist.formtotaglemmaaccents:
                 candidates = []
                 for (lextag, lexlemma, accented) in wordlist.formtotaglemmaaccents[wordform]:
-                    casedist = 1 if (iscapital != lexlemma.replace("-", "").istitle()) else 0
+                    # Prefer lemmas with same capitalization as the token, unless the token is at
+                    # the start of the sentence and capitalized, in which case any lemma is okay.
+                    casedist = 0 if iscapital == lexlemma.replace("-", "").istitle() or token.startssentence and iscapital else 1
                     tagdist = postags.tagDist(tag, lextag)
                     lemdist = levenshtein(lemma, lexlemma)
-                    if token.startssentence and iscapital:
-                        candidates.append((0, tagdist, lemdist, accented))
-                    else:
-                        candidates.append((casedist, tagdist, lemdist, accented))
+                    candidates.append((casedist, tagdist, lemdist, accented))
                 candidates.sort()
                 token.accented = candidates[0][3]
-                if len(set([c[3] for c in candidates if c[0] == 0])) == 1:
-                    token.isambiguous = False
-                else:
-                    token.isambiguous = True
+                # If there is at least one candidate with casedist = 0, and all such candidates
+                # have the same accented form, it is not ambiguous.
+                # If all have casedist = 1, we know that there are different accented forms,
+                # otherwise we wouldn't be in this elif block.
+                token.isambiguous = (len(set([c[3] for c in candidates if c[0] == 0])) != 1)
             else:
                 ## Unknown word, but attempt to mark vowels in ending:
                 ## To-do: Better support for different capitalization and orthography
@@ -584,6 +584,7 @@ class Tokenization:
                 enclitic = ""
         return result
     # enddef
+
 # endclass
 
 class Macronizer:
