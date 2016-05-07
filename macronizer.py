@@ -174,14 +174,14 @@ class Wordlist():
                     parses += postags.Morpheus2Parses(wordform, NL)
             lemmatagtoaccenteds = {}
             for parse in parses:
-                lemma = parse[postags.LEMMA].replace("#", "").replace("1", "").replace(" ", "+")
+                lemma = parse[postags.LEMMA].replace("#", "").replace("1", "").replace(" ", "+").replace("-", "").replace("^","").replace("_","")
                 parse[postags.LEMMA] = lemma
                 accented = parse[postags.ACCENTEDFORM]
-                if parse[postags.LEMMA].startswith("trans-") and accented[3] != "_":  # Work around shortcoming in Morpheus
+                if parse[postags.LEMMA].startswith("trans") and accented[3] != "_":  # Work around shortcoming in Morpheus
                     accented = accented[:3] + "_" + accented[3:]
                 parse[postags.ACCENTEDFORM] = accented
                 # Remove highly unlikely alternatives:
-                if lemma not in ["pareas", "de_-escendo", "de_-eo", "de_-edo", "Nus", "progredio", "aris"]:
+                if lemma not in ["pareas", "deescendo", "deeo", "deedo", "Nus", "progredio", "aris"]:
                     tag = postags.Parse2LDT(parse)
                     lemmatagtoaccenteds[(lemma, tag)] = lemmatagtoaccenteds.get((lemma, tag), []) + [accented]
             if len(lemmatagtoaccenteds) == 0:
@@ -462,16 +462,13 @@ class Tokenization:
         for token in self.tokens:
             wordform = toascii(token.token)
             bestlemma = "-"
+            maxfreq = -1
             if wordform in wordformtolemmasintrain:
-                bestlemma = ""
-                maxfreq = 0
                 for trainlemma in wordformtolemmasintrain[wordform]:
                     if wordlemmafreq[(wordform, trainlemma)] > maxfreq:
                         maxfreq = wordlemmafreq[(wordform, trainlemma)]
                         bestlemma = trainlemma
             elif wordform.lower() in wordlist.formtolemmas:
-                bestlemma = ""
-                maxfreq = -1
                 for lexlemma in wordlist.formtolemmas[wordform.lower()]:
                     if lemmafrequency.get(lexlemma, 0) > maxfreq:
                         maxfreq = lemmafrequency.get(lexlemma, 0)
@@ -523,7 +520,7 @@ class Tokenization:
                 for (lextag, lexlemma, accented) in wordlist.formtotaglemmaaccents[wordform]:
                     # Prefer lemmas with same capitalization as the token, unless the token is at
                     # the start of the sentence and capitalized, in which case any lemma is okay.
-                    casedist = 0 if iscapital == lexlemma.replace("-", "").istitle() or token.startssentence and iscapital else 1
+                    casedist = 0 if iscapital == lexlemma.istitle() or token.startssentence and iscapital else 1
                     tagdist = postags.tagDist(tag, lextag)
                     lemdist = levenshtein(lemma, lexlemma)
                     candidates.append((casedist, tagdist, lemdist, accented))
