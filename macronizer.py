@@ -96,6 +96,8 @@ class Wordlist():
     def loadwordsfromfile(self, filename, storeindb = False):
         plaindbfile = codecs.open(filename, 'r', 'utf8')
         for line in plaindbfile:
+            if line.startswith("#"):
+                continue
             [wordform, morphtag, lemma, accented] = line.split()
             self.addwordparse(wordform, morphtag, lemma, accented)
             if storeindb and USEMORPHEUSDATABASE:
@@ -180,10 +182,8 @@ class Wordlist():
                 if parse[postags.LEMMA].startswith("trans") and accented[3] != "_":  # Work around shortcoming in Morpheus
                     accented = accented[:3] + "_" + accented[3:]
                 parse[postags.ACCENTEDFORM] = accented
-                # Remove highly unlikely alternatives:
-                if lemma not in ["pareas", "deescendo", "deeo", "deedo", "Nus", "progredio", "aris"]:
-                    tag = postags.Parse2LDT(parse)
-                    lemmatagtoaccenteds[(lemma, tag)] = lemmatagtoaccenteds.get((lemma, tag), []) + [accented]
+                tag = postags.Parse2LDT(parse)
+                lemmatagtoaccenteds[(lemma, tag)] = lemmatagtoaccenteds.get((lemma, tag), []) + [accented]
             if len(lemmatagtoaccenteds) == 0:
                 continue
             knownwords.add(wordform);
