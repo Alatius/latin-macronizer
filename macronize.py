@@ -25,11 +25,13 @@ import codecs
 from xml.sax.saxutils import escape
 os.chdir(MACRONIZERLIB)
 from macronizer import Macronizer
+import unicodedata
 
 if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
     scriptname = os.environ['REQUEST_URI'].split('/')[-1]
     htmlform = cgi.FieldStorage()
     texttomacronize = htmlform.getvalue('textcontent',"").decode("utf8").replace("\r","")
+    texttomacronize = unicodedata.normalize('NFC', texttomacronize)
     #texttomacronize = texttomacronize[:20000]
     domacronize = True if texttomacronize == "" or htmlform.getvalue('macronize') else False
     alsomaius = True if htmlform.getvalue('alsomaius') else False
@@ -262,6 +264,7 @@ else: # Run as a free-standing Python script
                 infile = codecs.open(infilename, 'r', 'utf8')
             texttomacronize = infile.read()
         #endif
+        texttomacronize = unicodedata.normalize('NFC', texttomacronize)
         macronizer.settext(texttomacronize)
         macronizedtext = macronizer.gettext(domacronize, alsomaius, performutov, performitoj, markambigs=False)
 	if doevaluation:
