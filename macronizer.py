@@ -209,7 +209,7 @@ class Token:
     def __init__(self, text):
         self.tag = ""
         self.lemma = ""
-        self.accented = ""
+        self.accented = [""]
         self.macronized = ""
         self.text = postags.removemacrons(text)
         self.isword = re.match("[^\W\d_]", text, flags=re.UNICODE)
@@ -219,7 +219,6 @@ class Token:
         self.startssentence = False
         self.endssentence = False
         self.isunknown = False
-        self.isambiguous = False
     # enddef
 
     def split(self, pos, enclitic):
@@ -233,20 +232,20 @@ class Token:
     # enddef
 
     def show(self):
-        print(self.text + "\t" + self.tag + "\t" + self.lemma + "\t" + self.accented).expandtabs(16)
+        print("\t".join([self.text, self.tag, self.lemma, self.accented[0]])).expandtabs(16)
     # enddef
 
     def macronize(self, domacronize, alsomaius, performutov, performitoj):
         plain = self.text
-        accented = self.accented
+        if not self.isword:
+            self.macronized = plain
+            return
+        accented = self.accented[0]
         if domacronize and alsomaius and 'j' in accented:
             if not accented.startswith((
                     "bij", "fidej", "Foroj", "ju_rej", "multij", "praej", "quadrij", "rej", "retroj",
                     "se_mij", "sesquij", "u_nij", "introj")):
                 accented = re.sub('([aeiouy])(j[aeiouy])', r'\1_\2', accented)
-        if not self.isword:
-            self.macronized = plain
-            return
         if (not domacronize or not "_" in accented) and not performutov and not performitoj:
             self.macronized = plain
             return
@@ -261,10 +260,9 @@ class Token:
         if plain == accented.replace("_", ""):
             if domacronize:
                 self.macronized = accented
-                return
             else:
                 self.macronized = plain
-                return
+            return
         # endif
 
         def inscost(a):
@@ -523,9 +521,9 @@ class Tokenization:
             tag = token.tag
             lemma = token.lemma
             if token.text.lower() == "ne" and token.hasenclitic:  ## Not nēque...
-                token.accented = token.text
+                token.accented = ["ne"]
             elif len(set(wordlist.formtoaccenteds.get(wordform, []))) == 1:
-                token.accented = wordlist.formtoaccenteds[wordform][0]
+                token.accented = [wordlist.formtoaccenteds[wordform][0]]
             elif wordform in wordlist.formtotaglemmaaccents:
                 candidates = []
                 for (lextag, lexlemma, accented) in wordlist.formtotaglemmaaccents[wordform]:
@@ -536,20 +534,18 @@ class Tokenization:
                     lemdist = levenshtein(lemma, lexlemma)
                     candidates.append((casedist, tagdist, lemdist, accented))
                 candidates.sort()
-                token.accented = candidates[0][3]
-                # If there is at least one candidate with casedist = 0, and all such candidates
-                # have the same accented form, it is not ambiguous.
-                # If all have casedist = 1, we know that there are different accented forms,
-                # otherwise we wouldn't be in this elif block.
-                token.isambiguous = (len(set([c[3] for c in candidates if c[0] == 0])) != 1)
+                token.accented = []
+                for (casedist, tagdist, lemdist, accented) in candidates:
+                    if accented not in token.accented and casedist == candidates[0][0]:
+                        token.accented.append(accented)
             else:
                 ## Unknown word, but attempt to mark vowels in ending:
                 ## To-do: Better support for different capitalization and orthography
-                token.accented = token.text
+                token.accented = [token.text]
                 if any(i in token.text for i in u"aeiouyAEIOUY"):
                     for (accentedending, plainending) in tagtoendings.get(tag, []):
                         if wordform.endswith(plainending):
-                            token.accented = wordform[:-len(plainending)] + accentedending
+                            token.accented = [wordform[:-len(plainending)] + accentedending]
                             break
                     token.isunknown = True
     # enddef
@@ -578,7 +574,7 @@ class Tokenization:
                 unicodetext = postags.unicodeaccents(token.macronized)
                 if markambiguous:
                     unicodetext = enspancharacters(unicodetext)
-                    if token.isambiguous:
+                    if len(token.accented) > 1:
                         unicodetext = '<span class="ambig">%s</span>' % unicodetext
                     elif token.isunknown:
                         unicodetext = '<span class="unknown">%s</span>' % unicodetext
