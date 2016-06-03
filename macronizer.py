@@ -214,22 +214,22 @@ class Token:
         self.text = postags.removemacrons(text)
         self.isword = re.match("[^\W\d_]", text, flags=re.UNICODE)
         self.isspace = re.match("\s", text, flags=re.UNICODE)
-        self.isreordered = False
+        self.hasenclitic = False
+        self.isenclitic = False
         self.startssentence = False
         self.endssentence = False
         self.isunknown = False
         self.isambiguous = False
     # enddef
 
-    def split(self, pos, reorder):
+    def split(self, pos, enclitic):
         newtokena = Token(self.text[:-pos])
         newtokenb = Token(self.text[-pos:])
         newtokena.startssentence = self.startssentence
-        if reorder:
-            newtokenb.isreordered = True
-            return [newtokenb, newtokena]
-        else:
-            return [newtokena, newtokenb]
+        if enclitic:
+            newtokena.hasenclitic = True
+            newtokenb.isenclitic = True
+        return [newtokena, newtokenb]
     # enddef
 
     def show(self):
@@ -250,7 +250,7 @@ class Token:
         if (not domacronize or not "_" in accented) and not performutov and not performitoj:
             self.macronized = plain
             return
-        if self.isreordered:
+        if self.isenclitic:
             self.macronized = plain
             if performutov and self.macronized.lower() == "ue":
                 if self.macronized[0] == 'u':
@@ -425,8 +425,12 @@ class Tokenization:
         totaggerfile = codecs.open(totaggerfname, 'w', 'utf8')
         for token in self.tokens:
             if not token.isspace:
-                totaggerfile.write(toascii(token.text))
-                totaggerfile.write("\n")
+                if token.hasenclitic:
+                    savedencliticbearer = toascii(token.text)
+                    continue
+                totaggerfile.write(toascii(token.text) + "\n")
+                if token.isenclitic:
+                    totaggerfile.write(savedencliticbearer + "\n")
             if token.endssentence:
                 totaggerfile.write("\n")
         totaggerfile.close()
@@ -435,8 +439,13 @@ class Tokenization:
         for token in self.tokens:
             if not token.isspace:
                 try:
-                    (taggedtoken, tag) = fromtaggerfile.readline().strip().split("\t")
-                    assert toascii(token.text) == taggedtoken
+                    if token.hasenclitic:
+                        (taggedenclititoken, enclitictag) = fromtaggerfile.readline().strip().split("\t")
+                    if token.isenclitic:
+                        (taggedtoken, tag) = (taggedenclititoken, enclitictag)
+                    else:
+                        (taggedtoken, tag) = fromtaggerfile.readline().strip().split("\t")
+                    assert taggedtoken == toascii(token.text)
                 except:
                     raise Exception("Error: Something went wrong with the tagging.")
                 # endtry
@@ -513,7 +522,9 @@ class Tokenization:
             wordform = wordform.lower()
             tag = token.tag
             lemma = token.lemma
-            if len(set(wordlist.formtoaccenteds.get(wordform, []))) == 1:
+            if token.text.lower() == "ne" and token.hasenclitic:  ## Not nēque...
+                token.accented = token.text
+            elif len(set(wordlist.formtoaccenteds.get(wordform, []))) == 1:
                 token.accented = wordlist.formtoaccenteds[wordform][0]
             elif wordform in wordlist.formtotaglemmaaccents:
                 candidates = []
@@ -550,36 +561,31 @@ class Tokenization:
 
     def detokenize(self, markambiguous):
         def enspancharacters(text):
-            result = ""
+            result = []
             for char in text:
                 if char in u"āēīōūȳĀĒĪŌŪȲaeiouyAEIOUY":
-                    result = result + '<span>' + char + '</span>'
+                    result.append('<span>%s</span>' % char)
                 else:
-                    result = result + char
-            return result
+                    result.append(char)
+            return "".join(result)
         # enddef
 
-        result = ""
-        enclitic = ""
+        result = []
         for token in self.tokens:
-            if token.isreordered:
-                enclitic = token.macronized
+            if token.isenclitic:
+                result.append(token.macronized)
             else:
-                if token.text.lower() == "ne" and len(enclitic) > 0:  ## Not nēque...
-                    result += token.text + enclitic
-                else:
-                    unicodetext = postags.unicodeaccents(token.macronized)
-                    if markambiguous:
-                        unicodetext = enspancharacters(unicodetext)
-                        if token.isambiguous:
-                            unicodetext = '<span class="ambig">' + unicodetext + '</span>'
-                        elif token.isunknown:
-                            unicodetext = '<span class="unknown">' + unicodetext + '</span>'
-                        else:
-                            unicodetext = '<span class="auto">' + unicodetext + '</span>'
-                    result += unicodetext + enclitic
-                enclitic = ""
-        return result
+                unicodetext = postags.unicodeaccents(token.macronized)
+                if markambiguous:
+                    unicodetext = enspancharacters(unicodetext)
+                    if token.isambiguous:
+                        unicodetext = '<span class="ambig">%s</span>' % unicodetext
+                    elif token.isunknown:
+                        unicodetext = '<span class="unknown">%s</span>' % unicodetext
+                    else:
+                        unicodetext = '<span class="auto">%s</span>' % unicodetext
+                result.append(unicodetext)
+        return "".join(result)
     # enddef
 
 # endclass
