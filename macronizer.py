@@ -206,14 +206,14 @@ class Wordlist():
 
 
 class Token:
-    def __init__(self, token):
+    def __init__(self, text):
         self.tag = ""
         self.lemma = ""
         self.accented = ""
         self.macronized = ""
-        self.token = postags.removemacrons(token)
-        self.isword = re.match("[^\W\d_]", token, flags=re.UNICODE)
-        self.isspace = re.match("\s", token, flags=re.UNICODE)
+        self.text = postags.removemacrons(text)
+        self.isword = re.match("[^\W\d_]", text, flags=re.UNICODE)
+        self.isspace = re.match("\s", text, flags=re.UNICODE)
         self.isreordered = False
         self.startssentence = False
         self.endssentence = False
@@ -222,8 +222,8 @@ class Token:
     # enddef
 
     def split(self, pos, reorder):
-        newtokena = Token(self.token[:-pos])
-        newtokenb = Token(self.token[-pos:])
+        newtokena = Token(self.text[:-pos])
+        newtokenb = Token(self.text[-pos:])
         newtokena.startssentence = self.startssentence
         if reorder:
             newtokenb.isreordered = True
@@ -233,11 +233,11 @@ class Token:
     # enddef
 
     def show(self):
-        print(self.token + "\t" + self.tag + "\t" + self.lemma + "\t" + self.accented).expandtabs(16)
+        print(self.text + "\t" + self.tag + "\t" + self.lemma + "\t" + self.accented).expandtabs(16)
     # enddef
 
     def macronize(self, domacronize, alsomaius, performutov, performitoj):
-        plain = self.token
+        plain = self.text
         accented = self.accented
         if domacronize and alsomaius and 'j' in accented:
             if not accented.startswith((
@@ -341,8 +341,8 @@ class Tokenization:
                 if sentencehasended:
                     token.startssentence = True
                 sentencehasended = False
-                possiblesentenceend = (len(token.token) > 1)
-            elif possiblesentenceend and any(i in token.token for i in '.;:?!'):
+                possiblesentenceend = (len(token.text) > 1)
+            elif possiblesentenceend and any(i in token.text for i in '.;:?!'):
                 token.endssentence = True
                 possiblesentenceend = False
                 sentencehasended = True
@@ -353,7 +353,7 @@ class Tokenization:
         words = set()
         for token in self.tokens:
             if token.isword:
-                words.add(toascii(token.token).lower())
+                words.add(toascii(token.text).lower())
         return words
     # enddef
 
@@ -381,7 +381,7 @@ class Tokenization:
         newtokens = []
         for oldtoken in self.tokens:
             tobeadded = []
-            oldlc = oldtoken.token.lower()
+            oldlc = oldtoken.text.lower()
             if oldtoken.isword and oldlc != "que" and (
                             oldlc in wordlist.unknownwords or oldlc in ["nec", "neque", "necnon", "seque", "seseque",
                                                                         "quique", "secumque"]):
@@ -401,7 +401,7 @@ class Tokenization:
                 newtokens.append(oldtoken)
             else:
                 for part in tobeadded:
-                    newwords.add(toascii(part.token).lower())
+                    newwords.add(toascii(part.text).lower())
                     newtokens.append(part)
         self.tokens = newtokens
         return newwords
@@ -425,7 +425,7 @@ class Tokenization:
         totaggerfile = codecs.open(totaggerfname, 'w', 'utf8')
         for token in self.tokens:
             if not token.isspace:
-                totaggerfile.write(toascii(token.token))
+                totaggerfile.write(toascii(token.text))
                 totaggerfile.write("\n")
             if token.endssentence:
                 totaggerfile.write("\n")
@@ -436,7 +436,7 @@ class Tokenization:
             if not token.isspace:
                 try:
                     (taggedtoken, tag) = fromtaggerfile.readline().strip().split("\t")
-                    assert toascii(token.token) == taggedtoken
+                    assert toascii(token.text) == taggedtoken
                 except:
                     raise Exception("Error: Something went wrong with the tagging.")
                 # endtry
@@ -460,7 +460,7 @@ class Tokenization:
                 wordlemmafreq[(wordform, lemma)] = wordlemmafreq.get((wordform, lemma), 0) + 1
                 wordformtolemmasintrain[wordform] = wordformtolemmasintrain.get(wordform, set()) | set([lemma])
         for token in self.tokens:
-            wordform = toascii(token.token)
+            wordform = toascii(token.text)
             bestlemma = "-"
             maxfreq = -1
             if wordform in wordformtolemmasintrain:
@@ -508,7 +508,7 @@ class Tokenization:
         for token in self.tokens:
             if not token.isword:
                 continue
-            wordform = toascii(token.token)
+            wordform = toascii(token.text)
             iscapital = wordform.istitle()
             wordform = wordform.lower()
             tag = token.tag
@@ -534,8 +534,8 @@ class Tokenization:
             else:
                 ## Unknown word, but attempt to mark vowels in ending:
                 ## To-do: Better support for different capitalization and orthography
-                token.accented = token.token
-                if any(i in token.token for i in u"aeiouyAEIOUY"):
+                token.accented = token.text
+                if any(i in token.text for i in u"aeiouyAEIOUY"):
                     for (accentedending, plainending) in tagtoendings.get(tag, []):
                         if wordform.endswith(plainending):
                             token.accented = wordform[:-len(plainending)] + accentedending
@@ -565,8 +565,8 @@ class Tokenization:
             if token.isreordered:
                 enclitic = token.macronized
             else:
-                if token.token.lower() == "ne" and len(enclitic) > 0:  ## Not nēque...
-                    result += token.token + enclitic
+                if token.text.lower() == "ne" and len(enclitic) > 0:  ## Not nēque...
+                    result += token.text + enclitic
                 else:
                     unicodetext = postags.unicodeaccents(token.macronized)
                     if markambiguous:
