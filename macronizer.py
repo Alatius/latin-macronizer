@@ -241,6 +241,7 @@ class Token:
             self.macronized = plain
             return
         accented = self.accented[0]
+        accented = accented.replace("_^", "").replace("^", "")
         if domacronize and alsomaius and 'j' in accented:
             if not accented.startswith((
                     "bij", "fidej", "Foroj", "ju_rej", "multij", "praej", "quadrij", "rej", "retroj",
@@ -509,7 +510,7 @@ class Tokenization:
             line = line.strip().split("\t")
             endingpairs = []
             for ending in line[1:]:
-                endingpairs.append((ending, ending.replace("_", "")))
+                endingpairs.append((ending, ending.replace("_", "").replace("^", "")))
             tagtoendings[line[0]] = endingpairs
         # endfor
         for token in self.tokens:
@@ -520,7 +521,7 @@ class Tokenization:
             wordform = wordform.lower()
             tag = token.tag
             lemma = token.lemma
-            if token.text.lower() == "ne" and token.hasenclitic:  ## Not nēque...
+            if token.text.lower() == "ne" and (token.hasenclitic or token.isenclitic):  ## Not nēque...
                 token.accented = ["ne"]
             elif len(set(wordlist.formtoaccenteds.get(wordform, []))) == 1:
                 token.accented = [wordlist.formtoaccenteds[wordform][0]]

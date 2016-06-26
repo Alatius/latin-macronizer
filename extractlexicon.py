@@ -11,6 +11,7 @@ tagtoaccents = {}
 
 for line in macronsfile:
     [wordform, tag, lemma, accented] = line.split()
+    accented = accented.replace("_^", "").replace("^", "")
     tagtoaccents[tag] = tagtoaccents.get(tag,[]) + [postags.unicodeaccents(accented)]
     if accented[0].isupper():
         wordform = wordform.title()

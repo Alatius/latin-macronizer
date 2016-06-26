@@ -397,9 +397,8 @@ def removemacrons(txt):
     return txt
 #enddef
 def filteraccents(accented):
-    accented = accented.replace("^_","")
-    accented = accented.replace("_^","")
-    accented = accented.replace("^","")
+    accented = accented.replace("^_","_^")
+    accented = re.sub("_\^([bcdfgpt][lr])", "^\\1", accented)
     accented = re.sub(u"u_m$", "um", accented)
     accented = re.sub(u"([AEIOUYaeiouy])n([sfx]|ct)", "\\1_n\\2", accented)
     return accented
