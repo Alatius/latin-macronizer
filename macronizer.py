@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright 2015-2016 Johan Winge
+# Copyright 2015-2017 Johan Winge
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@ import os
 import re
 import sys
 from tempfile import mkstemp
+from cgi import escape as escapehtml
 
 import postags
 
@@ -204,6 +205,8 @@ class Wordlist():
         # enddef
 # endclass
 
+prefixeswithshortj = ("bij", "fidej", "Foroj", "foroj", "ju_rej", "multij", "praej", "quadrij",
+                      "rej", "retroj", "se_mij", "sesquij", "u_nij", "introj")
 
 class Token:
     def __init__(self, text):
@@ -212,8 +215,8 @@ class Token:
         self.accented = [""]
         self.macronized = ""
         self.text = postags.removemacrons(text)
-        self.isword = re.match("[^\W\d_]", text, flags=re.UNICODE)
-        self.isspace = re.match("\s", text, flags=re.UNICODE)
+        self.isword = True if re.match("[^\W\d_]", text, flags=re.UNICODE) else False
+        self.isspace = True if re.match("\s", text, flags=re.UNICODE) else False
         self.hasenclitic = False
         self.isenclitic = False
         self.startssentence = False
@@ -243,9 +246,7 @@ class Token:
         accented = self.accented[0]
         accented = accented.replace("_^", "").replace("^", "")
         if domacronize and alsomaius and 'j' in accented:
-            if not accented.startswith((
-                    "bij", "fidej", "Foroj", "ju_rej", "multij", "praej", "quadrij", "rej", "retroj",
-                    "se_mij", "sesquij", "u_nij", "introj")):
+            if not accented.startswith(prefixeswithshortj):
                 accented = re.sub('([aeiouy])(j[aeiouy])', r'\1_\2', accented)
         if (not domacronize or not "_" in accented) and not performutov and not performitoj:
             self.macronized = plain
@@ -323,6 +324,8 @@ class Token:
             else:
                 i -= 1
                 result = plain[i] + result
+        # Some strange morpheus output (e.g. de_e_recti_) may give an additional _ in the result:
+        result = result.replace("__", "_")
         self.macronized = result
         # enddef
 # endclass
@@ -346,6 +349,7 @@ class Tokenization:
                 possiblesentenceend = False
                 sentencehasended = True
             self.tokens.append(token)
+        self.scannedfeet = []
     # enddef
 
     def allwordforms(self):
@@ -383,7 +387,7 @@ class Tokenization:
             oldlc = oldtoken.text.lower()
             if oldtoken.isword and oldlc != "que" and (
                             oldlc in wordlist.unknownwords or oldlc in ["nec", "neque", "necnon", "seque", "seseque",
-                                                                        "quique", "secumque"]):
+                                                                        "quique", "mecumque", "tecumque", "secumque"]):
                 if oldlc == "nec":
                     tobeadded = oldtoken.split(1, True)
                 elif oldlc == "necnon":
@@ -424,10 +428,13 @@ class Tokenization:
         totaggerfile = codecs.open(totaggerfname, 'w', 'utf8')
         for token in self.tokens:
             if not token.isspace:
+                tokentext = token.text
+                if tokentext == tokentext.upper():
+                    tokentext = tokentext.lower()
                 if token.hasenclitic:
-                    savedencliticbearer = toascii(token.text)
+                    savedencliticbearer = toascii(tokentext)
                     continue
-                totaggerfile.write(toascii(token.text) + "\n")
+                totaggerfile.write(toascii(tokentext) + "\n")
                 if token.isenclitic:
                     totaggerfile.write(savedencliticbearer + "\n")
             if token.endssentence:
@@ -444,7 +451,10 @@ class Tokenization:
                         (taggedtoken, tag) = (taggedenclititoken, enclitictag)
                     else:
                         (taggedtoken, tag) = fromtaggerfile.readline().strip().split("\t")
-                    assert taggedtoken == toascii(token.text)
+                    if token.text == token.text.upper():
+                        assert taggedtoken == toascii(token.text.lower())
+                    else:
+                        assert taggedtoken == toascii(token.text)
                 except:
                     raise Exception("Error: Something went wrong with the tagging.")
                 # endtry
@@ -521,7 +531,9 @@ class Tokenization:
             wordform = wordform.lower()
             tag = token.tag
             lemma = token.lemma
-            if token.text.lower() == "ne" and (token.hasenclitic or token.isenclitic):  ## Not nēque...
+            if token.isenclitic:
+                token.accented = [token.text.lower()]
+            elif token.text.lower() == "ne" and token.hasenclitic:  ## Not nēque...
                 token.accented = ["ne"]
             elif len(set(wordlist.formtoaccenteds.get(wordform, []))) == 1:
                 token.accented = [wordlist.formtoaccenteds[wordform][0]]
@@ -551,6 +563,230 @@ class Tokenization:
                     token.isunknown = True
     # enddef
 
+    def scanverses(self, meterautomatons):
+        """Try to scan the text according to meterautomatons. This function will, for each token,
+        reconsider the order of the accented forms given by the getaccents function, by finding
+        a likely combination of accented forms that make the verses scan."""
+
+        def allvowelsambiguous(accented):
+            """Generate accented forms for unknown words"""
+            accented = re.sub("([aeiouy])", "\\1_^", accented)
+            accented = accented.replace("qu_^", "qu")
+            accented = re.sub("_\^(ns|nf|nct)", "_\\1", accented)
+            accented = re.sub("_\^([bcdfgjklmnpqrstv]{2,}|[xz])", "\\1", accented)
+            accented = re.sub("_\^m$", "m", accented)
+            return accented
+        #enddef
+
+        def breakoutambiguous(accenteds):
+            """If a vowel is ambiguous (_^), generate different accented forms,
+            one where it is long, one when short."""
+            if accenteds == ['nescio_']: # An ad hoc fix
+                accenteds = ['nescio_^']
+            elif accenteds == ['u_ni_us']:
+                accenteds = ['u_ni_^us']
+            elif accenteds == ['illi_us']:
+                accenteds = ['illi_^us']
+            elif accenteds == ['alteri_us']:
+                accenteds = ['alteri_^us']
+            newaccenteds = []
+            alts = ["", "_"]
+            for accented in accenteds:
+                parts = accented.split("_^")
+                for i in range(1 << len(parts)-1):
+                    newaccented = [parts[0]]
+                    for bitpos in range(len(parts)-1):
+                        newaccented.append(alts[i >> bitpos & 1])
+                        newaccented.append(parts[bitpos+1])
+                    newaccenteds.append("".join(newaccented))
+            return newaccenteds
+        #enddef
+
+        def segmentaccented(accented):
+            """Split an accented form into a list of individual vowel phonemes and consonant clusters"""
+            if accented == "hoc": # Ad hoc fix. (Haha!)
+                return ['o', 'cc']
+            text = accented.lower().replace("qu", "q").replace("x", "cs").replace("z", "ds").replace("+", "^") + "#"
+            segments = []
+            segmentstart = 0
+            pos = 0
+            while True:
+                if text[pos:pos+2] in ["ae", "au", "ei", "eu", "oe"] and text[pos+2] not in "_^+":
+                    pos += 2
+                elif text[pos] in "aeiouy":
+                    pos += 1
+                    while text[pos] in "_^+":
+                        pos += 1
+                else:
+                    while text[pos] not in "aeiouy#":
+                        pos += 1
+                segment = text[segmentstart:pos].replace("h", "")
+                if segment != "":
+                    segments.append(segment)
+                if text[pos] == "#":
+                    break
+                segmentstart = pos
+            return segments
+        #enddef
+
+        def possiblescans(accentedcandidates, followingsegment):
+            """A form with marked vowel lengths can be scanned differently, considering
+            muta cum liquida, diphthong vs. diaeresis, elision, etc.
+            input: followingsegment is one of ["V", "C", "CC", "#"]
+            returns: [(penalty, scansion, accented), ...]"""
+            REPRIORITIZEPENALTY = 1
+            MUTACUMLIQUIDAPENALTY = 1
+            DIAERESISPENALTY = 2
+            NOSYNEZISPENALTY = 2 # in the context s or ng + u + vowel
+            SYNEZISPENALTY = 3
+            HIATUSPENALTY = 3
+            isfirstaccented = True
+            scans = []
+            for accented in breakoutambiguous(accentedcandidates):
+                segments = segmentaccented(accented)
+                segments.append(followingsegment)
+                basepenalty = 0 if isfirstaccented else REPRIORITIZEPENALTY
+                temps = [(basepenalty, "")]
+                for i, thisseg in enumerate(segments):
+                    prevseg = "#" if i == 0 else segments[i-1]
+                    nextseg = "#" if i == len(segments) - 1 else segments[i+1]
+                    if i == 0 and not thisseg[0] in "aeiouy":
+                        continue
+                    news = []
+                    for (penaltysofar, scansofar) in temps:
+                        if "_" in thisseg:
+                            news.append((penaltysofar, scansofar + "L"))
+                        elif thisseg in ["ae", "au", "ei", "oe", "eu"]:
+                            news.append((penaltysofar, scansofar + "L"))
+                            news.append((penaltysofar + DIAERESISPENALTY, scansofar + "VV"))
+                        elif thisseg == "u" and (prevseg.endswith("s") or prevseg.endswith("ng")) and nextseg[0] in "aeiouy":
+                            news.append((penaltysofar, scansofar + "C"))
+                            news.append((penaltysofar + NOSYNEZISPENALTY, scansofar + "V"))
+                        elif thisseg[0] in "ui" and (nextseg[0] in "aeiouy" or prevseg[0] in "aeiouy"):
+                            news.append((penaltysofar, scansofar + "V"))
+                            news.append((penaltysofar + SYNEZISPENALTY, scansofar + "C"))
+                        elif thisseg[0] in "aeiouy":
+                            news.append((penaltysofar, scansofar + "V"))
+                        elif thisseg == "m" and nextseg in ["V", "C", "CC", "#"]:
+                            news.append((penaltysofar, scansofar + "M"))
+                        elif thisseg == "j" and prevseg != "#":
+                            if accented.startswith(prefixeswithshortj):
+                                news.append((penaltysofar, scansofar + "C"))
+                            else:
+                                news.append((penaltysofar, scansofar + "CC"))
+                        elif thisseg == "V": # next word begins with vowel
+                            if scansofar.endswith("V") or scansofar.endswith("L"):
+                                news.append((penaltysofar, scansofar[:-1]))
+                                news.append((penaltysofar + HIATUSPENALTY, scansofar))
+                            elif scansofar.endswith("M"):
+                                news.append((penaltysofar, scansofar[:-2]))
+                                news.append((penaltysofar + HIATUSPENALTY, scansofar))
+                            else:
+                                news.append((penaltysofar, scansofar))
+                        elif thisseg == "#":
+                            news.append((penaltysofar, scansofar))
+                        elif len(thisseg) == 1:
+                            news.append((penaltysofar, scansofar + "C"))
+                        elif len(thisseg) == 2 and thisseg[0] in "tpcdbgf" and thisseg[1] in "rl":
+                            news.append((penaltysofar, scansofar + "C"))
+                            news.append((penaltysofar + MUTACUMLIQUIDAPENALTY, scansofar + "CC"))
+                        else:
+                            news.append((penaltysofar, scansofar + "CC"))
+                    temps = news
+                for (penalty, scansion) in temps:
+                    scansion = re.sub("VMC*|VCCC*|LM?C*", "L", scansion)
+                    scansion = re.sub("VC?", "S", scansion)
+                    scansion = re.sub("^C*", "", scansion)
+                    scans.append((penalty, scansion, accented))
+                isfirstaccented = False
+            filteredscans = []
+            foundscansions = set()
+            for (penalty, scansion, accented) in sorted(scans):
+                if scansion not in foundscansions:
+                    filteredscans.append((penalty, scansion, accented))
+                    foundscansions.add(scansion)
+            return filteredscans
+        #enddef
+
+        def scanverse(verse, automaton):
+            """Input: The "verse" is a complicated list of the format
+            [(tokenindex, [(penalty, scansion, accented), (penalty, scansion, accented), ...]), ...]
+            For example: [(0, [(0, 'L', 'in')]), (2, [(0, 'SL', 'no^va_'), (1, 'SS', 'no^va')]), ...]
+            It returns a tuple such as ([(0, 'in'), (2, 'no^va'), (4, 'fe^rt'), ...], 'DDSSDS') """
+            def scanverserecurse(verse, wordindex, automaton, oldnodeindex):
+                if wordindex == len(verse):
+                    return ([], [], 0)
+                (tokenindex, wordscansions) = verse[wordindex]
+                besttail = []
+                besttailfeet = []
+                besttailpenalty = 100
+                for (penalty, scansion, accented) in wordscansions:
+                    nodeindex = oldnodeindex
+                    feet = []
+                    finished = False
+                    for syllable in scansion:
+                        (nodeindex, foot) = automaton.get((nodeindex, syllable), (-1, ""))
+                        if nodeindex == 0:
+                            finished = True
+                        feet.append(foot)
+                    if nodeindex == -1 or finished and (nodeindex != 0 or wordindex != len(verse)-1):
+                        continue
+                    (tail, tailfeet, tailpenalty) = scanverserecurse(verse, wordindex+1, automaton, nodeindex)
+                    if penalty + tailpenalty < besttailpenalty:
+                        besttail = [(tokenindex, accented)] + tail
+                        besttailfeet = feet + tailfeet
+                        besttailpenalty = penalty + tailpenalty
+                return (besttail, besttailfeet, besttailpenalty)
+            # enddef
+            (indexaccentedpairs, feet, penalty) = scanverserecurse(verse, 0, automaton, 0)
+            return (indexaccentedpairs, "".join(feet))
+        # enddef
+
+        self.scannedfeet = []
+        verse = []
+        automatonindex = 0
+        for (index, token) in enumerate(self.tokens):
+            if token.isword:
+                followingtext = ""
+                nextindex = index
+                while True:
+                    nextindex += 1
+                    if nextindex == len(self.tokens) or "\n" in self.tokens[nextindex].text:
+                        break
+                    if self.tokens[nextindex].isspace:
+                        followingtext += " "
+                    elif self.tokens[nextindex].isword:
+                        followingtext += self.tokens[nextindex].accented[0]
+                        if "aeiouy" in followingtext:
+                            break
+                followingtext = followingtext.lower().replace("h", "")
+                if followingtext == "":
+                    followingsegment = "#"
+                elif re.match(" *[aeiouy]", followingtext):
+                    followingsegment = "V"
+                elif re.match(" *([bcdfgjklmnpqrstv] *|[tpcdbgf][lr])[aeiouy]", followingtext):
+                    followingsegment = "C"
+                else:
+                    followingsegment = "CC"
+                if token.isunknown:
+                    token.accented.append(allvowelsambiguous(token.text.lower()))
+                verse.append((index, possiblescans(token.accented, followingsegment)))
+            if "\n" in token.text or index == len(self.tokens) - 1:
+                (accentcorrections, feet) = scanverse(verse, meterautomatons[automatonindex])
+                self.scannedfeet.append(feet)
+                self.scannedfeet += [""] * (token.text.count("\n") - 1)
+                for (tokenindex, newaccented) in accentcorrections:
+                    try:
+                        self.tokens[tokenindex].accented.remove(newaccented)
+                    except ValueError:
+                        pass
+                    self.tokens[tokenindex].accented.insert(0, newaccented)
+                verse = []
+                automatonindex += 1
+                if automatonindex == len(meterautomatons):
+                    automatonindex = 0
+    # enddef
+
     def macronize(self, domacronize, alsomaius, performutov, performitoj):
         for token in self.tokens:
             token.macronize(domacronize, alsomaius, performutov, performitoj)
@@ -571,14 +807,19 @@ class Tokenization:
         for token in self.tokens:
             if token.isenclitic:
                 result.append(token.macronized)
+            elif not token.isword:
+                if markambiguous:
+                    result.append(escapehtml(token.macronized))
+                else:
+                    result.append(token.macronized)
             else:
                 unicodetext = postags.unicodeaccents(token.macronized)
                 if markambiguous:
                     unicodetext = enspancharacters(unicodetext)
-                    if len(token.accented) > 1:
-                        unicodetext = '<span class="ambig">%s</span>' % unicodetext
-                    elif token.isunknown:
+                    if token.isunknown:
                         unicodetext = '<span class="unknown">%s</span>' % unicodetext
+                    elif len(set([x.replace("^", "") for x in token.accented])) > 1:
+                        unicodetext = '<span class="ambig">%s</span>' % unicodetext
                     else:
                         unicodetext = '<span class="auto">%s</span>' % unicodetext
                 result.append(unicodetext)
@@ -588,6 +829,85 @@ class Tokenization:
 # endclass
 
 class Macronizer:
+
+    dactylichexameter = {
+        (0, 'L'): (1, ''),
+        (0, 'S'): (-1, ''),
+        (1, 'L'): (3, 'S'),
+        (1, 'S'): (2, ''),
+        (2, 'L'): (-1, ''),
+        (2, 'S'): (3, 'D'),
+
+        (3, 'L'): (4, ''),
+        (3, 'S'): (-1, ''),
+        (4, 'L'): (6, 'S'),
+        (4, 'S'): (5, ''),
+        (5, 'L'): (-1, ''),
+        (5, 'S'): (6, 'D'),
+
+        (6, 'L'): (7, ''),
+        (6, 'S'): (-1, ''),
+        (7, 'L'): (9, 'S'),
+        (7, 'S'): (8, ''),
+        (8, 'L'): (-1, ''),
+        (8, 'S'): (9, 'D'),
+
+        (9, 'L'): (10, ''),
+        (9, 'S'): (-1, ''),
+        (10, 'L'): (12, 'S'),
+        (10, 'S'): (11, ''),
+        (11, 'L'): (-1, ''),
+        (11, 'S'): (12, 'D'),
+
+        (12, 'L'): (13, ''),
+        (12, 'S'): (-1, ''),
+        (13, 'L'): (15, 'S'),
+        (13, 'S'): (14, ''),
+        (14, 'L'): (-1, ''),
+        (14, 'S'): (15, 'D'),
+
+        (15, 'L'): (16, ''),
+        (15, 'S'): (-1, ''),
+        (16, 'L'): (0, 'S'),
+        (16, 'S'): (0, 'T'),
+    }
+
+    dactylicpentameter = {
+        (0, 'L'): (1, ''),
+        (0, 'S'): (-1, ''),
+        (1, 'L'): (3, 'S'),
+        (1, 'S'): (2, ''),
+        (2, 'L'): (-1, ''),
+        (2, 'S'): (3, 'D'),
+
+        (3, 'L'): (4, ''),
+        (3, 'S'): (-1, ''),
+        (4, 'L'): (6, 'S'),
+        (4, 'S'): (5, ''),
+        (5, 'L'): (-1, ''),
+        (5, 'S'): (6, 'D'),
+
+        (6, 'L'): (7, '-'),
+        (6, 'S'): (-1, ''),
+
+        (7, 'L'): (8, ''),
+        (7, 'S'): (-1, ''),
+        (8, 'L'): (-1, ''),
+        (8, 'S'): (9, ''),
+        (9, 'L'): (-1, ''),
+        (9, 'S'): (10, 'D'),
+
+        (10, 'L'): (11, ''),
+        (10, 'S'): (-1, ''),
+        (11, 'L'): (-1, ''),
+        (11, 'S'): (12, ''),
+        (12, 'L'): (-1, ''),
+        (12, 'S'): (13, 'D'),
+
+        (13, 'L'): (0, '-'),
+        (13, 'S'): (0, '-')
+    }
+
     def __init__(self):
         self.wordlist = Wordlist()
         self.tokenization = Tokenization("")
@@ -601,6 +921,10 @@ class Macronizer:
         self.tokenization.addtags()
         self.tokenization.addlemmas(self.wordlist)
         self.tokenization.getaccents(self.wordlist)
+    # enddef
+
+    def scan(self, automatons):
+        self.tokenization.scanverses(automatons)
     # enddef
 
     def gettext(self, domacronize=True, alsomaius=False, performutov=False, performitoj=False, markambigs=False):
@@ -628,7 +952,7 @@ class Macronizer:
                 if a == b:
                     lengthcorrect += 1
             if toascii(touiorthography(a)) == toascii(touiorthography(b)):
-                outtext.append(b)
+                outtext.append(escapehtml(b))
             else:
                 outtext.append('<span class="wrong">%s</span>' % b)
         return (lengthcorrect / float(vowelcount), "".join(outtext))
@@ -636,7 +960,7 @@ class Macronizer:
 # endclass
 
 if __name__ == "__main__":
-    print("""Library for marking Latin texts with macrons. Copyright 2015-2016 Johan Winge.
+    print("""Library for marking Latin texts with macrons. Copyright 2015-2017 Johan Winge.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

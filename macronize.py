@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright 2015-2016 Johan Winge
+# Copyright 2015-2017 Johan Winge
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,21 +23,37 @@ import os
 import sys
 import codecs
 from xml.sax.saxutils import escape
+sys.path.append(MACRONIZERLIB)
 os.chdir(MACRONIZERLIB)
 from macronizer import Macronizer
 import unicodedata
+
+PROSE = 'prose'
+HEXAMETER = 'hexameter'
+ELEGIACS = 'elegiacs'
+TRUNCATETHRESHOLD = 20000
 
 if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
     scriptname = os.environ['REQUEST_URI'].split('/')[-1]
     htmlform = cgi.FieldStorage()
     texttomacronize = htmlform.getvalue('textcontent',"").decode("utf8").replace("\r","")
     texttomacronize = unicodedata.normalize('NFC', texttomacronize)
-    #texttomacronize = texttomacronize[:20000]
+    #texttomacronize = texttomacronize[:TRUNCATETHRESHOLD]
     domacronize = True if texttomacronize == "" or htmlform.getvalue('macronize') else False
     alsomaius = True if htmlform.getvalue('alsomaius') else False
+    scan = htmlform.getvalue('scan')
+    if not scan:
+        scan = PROSE
     performitoj = True if htmlform.getvalue('itoj') else False
     performutov = True if htmlform.getvalue('utov') else False
-    
+    doevaluate = True if htmlform.getvalue('doevaluate') else False
+    debugcommand = "DEBUG\n"
+    if texttomacronize.startswith(debugcommand):
+        dodebug = True
+        texttomacronize = texttomacronize[len(debugcommand):]
+    else:
+        dodebug = False
+
     print("Content-type:text/html\n\n")
     print("""
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
@@ -45,58 +61,96 @@ if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <style type="text/css">
-  span.wrong {background-color: #ff6666;}
-  span.ambig {background-color: yellow;}
-  span.unknown {background-color: orange;}
-  span.fixed {background-color: lightgreen;}
-  div.prewrap {white-space: pre-wrap;}
+    h1 a {font-style: italic; text-decoration: none; color: black;}
+    body {padding: 2em;}
+    span.wrong {background-color: #ff6666;}
+    span.ambig {background-color: yellow;}
+    span.unknown {background-color: orange;}
+    span.fixed {background-color: lightgreen;}
+    div.feet {float: left; border: 1px hidden; padding: 0.5em;}
+    div.prewrap {display:inline-block; white-space: pre-wrap; border: 1px dashed black; padding: 0.5em;}
 </style>
 <title>A Latin Macronizer</title>
 </head>
 <body>""")
     print('<h1><a href="' + scriptname + '">A Latin Macronizer</a></h1>')
     print('<p>Please enter a Latin text!</p>')
-    #print( '<p>Note: Input longer than 20000 characters will be truncated. (Sorry about that!)</p>')
+    #print( '<p>Note: In order to avoid time out from the server, input longer than %s characters will be truncated. Sorry about that!</p>' % (TRUNCATETHRESHOLD))
     print('<form action="' + scriptname+'" method="post">')
-    print('<p><textarea name="textcontent" cols="100" rows="20">')
+    print('<p><textarea name="textcontent" onclick="enlarge(this)" cols="100" rows="%s">' % ('20' if texttomacronize == "" else '3'))
     if texttomacronize == "":
         macronizedtext = ""
     else:
         try:
             macronizer = Macronizer()
             macronizer.settext(texttomacronize)
+            if scan == HEXAMETER:
+                macronizer.scan([Macronizer.dactylichexameter])
+            elif scan == ELEGIACS:
+                macronizer.scan([Macronizer.dactylichexameter, Macronizer.dactylicpentameter])
             macronizedtext = macronizer.gettext(domacronize, alsomaius, performutov, performitoj, markambigs=False)
-            sys.stdout.write(macronizedtext)
+            #sys.stdout.write(macronizedtext)
         except Exception as inst:
             print(inst.args[0])
             macronizedtext = ""
     print('</textarea><br>')
-    print('<input type="checkbox" name="macronize" value="on" %s> Mark long vowels. &nbsp;&nbsp;&nbsp;' % ("checked" if domacronize else ""))
-    print(u'<input type="checkbox" name="alsomaius" value="on" %s> Also mark <i>māius</i> etc.<br>' % ("checked" if alsomaius else ""))
-    print('<input type="checkbox" name="utov" value="on" %s> Convert u to v. &nbsp;&nbsp;&nbsp;' % ("checked" if performutov else ""))
+    print('<input type="checkbox" name="macronize" onchange="toggleDisabled(this.checked)" value="on" %s> Mark long vowels.<br>' % ("checked" if domacronize else ""))
+    print(u'&nbsp;&nbsp;&nbsp;<input class="macronizersetting" type="checkbox" name="alsomaius" value="on" %s> Also mark <i>māius</i> etc.<br>' % ("checked" if alsomaius else ""))
+    print('&nbsp;&nbsp;&nbsp;To improve the result, try to scan the text as...<br>')
+    print('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input class="macronizersetting" type="radio" name="scan" value="%s" %s> Prose (no scansion).' % (PROSE, "checked" if scan == PROSE else ""))
+    print('<input class="macronizersetting" type="radio" name="scan" value="%s" %s> Dactylic hexameters.' % (HEXAMETER, "checked" if scan == HEXAMETER else ""))
+    print('<input class="macronizersetting" type="radio" name="scan" value="%s" %s> Elegiac distichs.<br>' % (ELEGIACS, "checked" if scan == ELEGIACS else ""))
+    print(u'&nbsp;&nbsp;&nbsp;<input class="macronizersetting" type="checkbox" name="doevaluate" value="off" %s> Compare result with correctly macronized input text.<br>' % ("checked" if doevaluate else ""))
+    print('<input type="checkbox" name="utov" value="on" %s> Convert u to v.<br>' % ("checked" if performutov else ""))
     print('<input type="checkbox" name="itoj" value="on" %s> Convert i to j.<br>' % ("checked" if performitoj else ""))
     print('<input type="submit" value="Submit"> (Please be patient!)<br>')
     print('</p></form>')
-    
+
     if macronizedtext != "":
         print('<h2>Result</h2>')
         print('<p>(Ambiguous forms are marked <span class="ambig">yellow</span>; unknown forms are <span class="unknown">orange</span>. You may click on a vowel to add or remove a macron.)</p>')
+        if scan != PROSE:
+            print('<div class="feet">' + "<br>".join(macronizer.tokenization.scannedfeet) + '</div>')
         print('<div class="prewrap" id="selectme">' + macronizer.tokenization.detokenize(True) + '</div>')
-        print('<p><input id="selecttext" type="button" value="Copy text"/></p>')
+        print('<p><input id="selecttext" type="button" value="Copy text"></p>')
     
     if macronizedtext != "":
-        if len(macronizer.tokenization.tokens) > 2:
-            if macronizer.tokenization.tokens[0].token == "DEBUG":
-                print('<h2>Debug info</h2>')
-                print('<pre>')
-                macronizer.tokenization.show()
-                print('</pre>')
-            if macronizer.tokenization.tokens[0].token == "EVALUATE":
-                print('<h2>Evaluation</h2>')
-                (accuracy, evaluatedtext) = macronizer.evaluate(texttomacronize[9:], macronizedtext[9:])
-                print('<div class="prewrap">%s</div>' % (evaluatedtext))
-                print('<p>Accuracy: %f%%</p>' % (accuracy * 100))
-    
+        if doevaluate:
+            print('<h2>Evaluation</h2>')
+            (accuracy, evaluatedtext) = macronizer.evaluate(texttomacronize, macronizedtext)
+            print('<div class="prewrap">%s</div>' % (evaluatedtext))
+            print('<p>Accuracy: %f%%</p>' % (accuracy * 100))
+        if dodebug:
+            print('<h2>Debug info</h2>')
+            print('<pre>')
+            macronizer.tokenization.show()
+            print('</pre>')
+    print("""<h2>News</h2>
+
+    <p>October 2016: The performance on texts written in all uppercase letters has been greatly improved.</p>
+
+    <p>July 2016: I am happy to announce that the Macronizer now is
+    able to take the meter into account when guessing the vowel
+    lengths in poetry. When tested on a couple of books of the
+    Aeneid (from the eminent <a href="http://dcc.dickinson.edu/">Dickinson College
+    Commentaries</a>), this has been demonstrated to cut the number of
+    erroneous vowel lengths in half! Currently, dactylic hexameters
+    and elegiac distichs are supported; other meters may be added.</p>
+
+    <p>Also, I have now added a PayPal donation button:
+    if you use the macronizer regularly and find it helpful and
+    time-saving, please consider making a donation, to support
+    maintenance and continuous development! Any amount is very much
+    appreciated!
+    <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
+    <p>
+    <input type="hidden" name="cmd" value="_s-xclick">
+    <input type="hidden" name="hosted_button_id" value="KKJ2V4ZVB3WGU">
+    <input type="image" src="https://www.paypalobjects.com/en_US/SE/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
+    <img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
+    </p>
+    </form>
+""")
     print("""<h2>Information</h2>
 
     <p>This automatic macronizer lets you quickly mark all the long vowels
@@ -117,10 +171,21 @@ if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
     you may find the <a href="https://github.com/Alatius/latin-macronizer">source
     code on GitHub</a>.</p>
 
-    <p>Copyright 2015, 2016 Johan Winge. Please send comments to
+    <p>Copyright 2015-2017 Johan Winge. Please send comments to
     <a href="mailto:johan.winge@gmail.com">johan.winge@gmail.com</a>.</p>
 
     <script type="text/javascript">
+    function enlarge(textbox) {
+       textbox.rows = 20;
+    }
+
+    function toggleDisabled(_checked) {
+       var elements = document.getElementsByClassName('macronizersetting')
+       for (var i = 0; i < elements.length; i++) {
+          elements[i].disabled = _checked ? false : true;
+       }
+    }
+
     function clickHandler(event) {
       var span = event.target;
       if (span.className == 'ambig' || span.className == 'unknown' || span.className == 'auto') {
@@ -253,7 +318,7 @@ else: # Run as a free-standing Python script
     try:
         macronizer = Macronizer()
         if dotest:
-            texttomacronize = "O orbis terrarum te saluto!\n"
+            texttomacronize = u"O orbis terrarum te saluto!\n"
         else:
             if infilename == "":
                 if sys.version_info[0] < 3:
