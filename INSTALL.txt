@@ -51,13 +51,16 @@ thepassword to whatever you want.
 
 Now, edit the main script macronizer.py and set the constants in the beginning to the correct values:
 
-  MACRONIZERLIB = '/path/to/the/latin-macronizer/'
-  MORPHEUSDIR = MACRONIZERLIB+'morpheus/'
+  MORPHEUSDIR = 'morpheus/'
   RFTAGGERDIR = '/usr/local/bin/'
   DBNAME = 'macronizer'
   DBUSER = 'theusername'
   DBPASSWORD = 'thepassword'
   DBHOST = 'localhost'
+
+Similarly, edit the front-end macronize.py and update the constant to point to the right directory:
+
+  MACRONIZERLIB = '/path/to/the/latin-macronizer/'
 
 Finally, initialize the macronizer:
 
@@ -79,7 +82,7 @@ own needs!
 
   sudo a2enmod cgi
 
-  sudo gedit /etc/apache2/apache2.conf
+  sudo nano /etc/apache2/apache2.conf
 
 Edit the following part to look like this:
 
@@ -92,12 +95,12 @@ Edit the following part to look like this:
 
 Then save the configuration, and restart:
 
-  sudo /etc/init.d/apache2 restart
+  sudo service apache2 restart
 
 Make a link to the script, and make it executable:
 
   sudo ln -s /complete/path/to/macronize.py /var/www/html/macronize.py
-  sudo chmod a+x /var/www/html/macronize.py
+  sudo chmod 755 /var/www/html/macronize.py
 
 Hopefully, you can now find the macronizer working at http://localhost/macronize.py
 
