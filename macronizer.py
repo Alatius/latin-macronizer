@@ -587,6 +587,8 @@ class Tokenization:
                 accenteds = ['u_ni_^us']
             elif accenteds == ['illi_us']:
                 accenteds = ['illi_^us']
+            elif accenteds == ['ipsi_us']:
+                accenteds = ['ipsi_^us']
             elif accenteds == ['alteri_us']:
                 accenteds = ['alteri_^us']
             newaccenteds = []
