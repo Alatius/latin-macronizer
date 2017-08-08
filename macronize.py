@@ -111,7 +111,7 @@ if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
         print('<p>(Ambiguous forms are marked <span class="ambig">yellow</span>; unknown forms are <span class="unknown">orange</span>. You may click on a vowel to add or remove a macron.)</p>')
         if scan != PROSE:
             print('<div class="feet">' + "<br>".join(macronizer.tokenization.scannedfeet) + '</div>')
-        print('<div class="prewrap" id="selectme">' + macronizer.tokenization.detokenize(True) + '</div>')
+        print('<div class="prewrap" id="selectme" contenteditable="true">' + macronizer.tokenization.detokenize(True) + '</div>')
         print('<p><input id="selecttext" type="button" value="Copy text"></p>')
     
     if macronizedtext != "":
