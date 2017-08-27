@@ -1,8 +1,9 @@
-These instructions are for Linux (specifically of the Debian flavour). Please adapt
-to your system, if necessary.
+These instructions are for Linux (specifically of the Debian flavour,
+such as Ubuntu or Mint). Please adapt to your system, if necessary.
 
-Supposedly (since you are reading this) you have already downloaded the source code
-for the macronizer and are standing in the directory called "latin-macronizer".
+Supposedly (since you are reading this) you have already downloaded
+the source code for the macronizer and are standing in the directory
+called "latin-macronizer".
 
 Install prerequisite packages:
 
@@ -20,7 +21,8 @@ Download the specially adapted version of Morpheus, and compile it:
   echo "salve" | MORPHLIB=stemlib bin/cruncher -L
   cd ..
 
-(Yes, run the update script twice. And check that it did in fact parse "salve" correctly!)
+(Yes, run the update script twice. And check that it did in fact parse
+"salve" correctly!)
 
 And the patched version of the Latin Dependency Treebank:
 
@@ -38,10 +40,10 @@ Convert the corpus and train RFTagger:
 
   ./train-rftagger.sh
 
-The macronizer script stores the Morpheus analyses in a PostgreSQL database.
-So you will have to install a database server and create a database.
-The following works for me; your mileage may vary. Change theusername and
-thepassword to whatever you want.
+The macronizer script stores the Morpheus analyses in a PostgreSQL
+database. So you will have to install a database server and create a
+database. The following works for me; your mileage may vary. Change
+theusername and thepassword to whatever you want.
 
   sudo apt-get install postgresql
   sudo -u postgres psql
@@ -49,7 +51,10 @@ thepassword to whatever you want.
   postgres=# create database macronizer encoding 'UTF8' owner theusername;
   postgres=# \q
 
-Now, edit the main script macronizer.py and set the constants in the beginning to the correct values:
+If you selected your own PostgreSQL username and password, or have
+made other customizations, you will have to edit the main script
+macronizer.py and set the constants in the beginning to the correct
+values:
 
   MORPHEUSDIR = 'morpheus/'
   RFTAGGERDIR = '/usr/local/bin/'
@@ -58,11 +63,7 @@ Now, edit the main script macronizer.py and set the constants in the beginning t
   DBPASSWORD = 'thepassword'
   DBHOST = 'localhost'
 
-Similarly, edit the front-end macronize.py and update the constant to point to the right directory:
-
-  MACRONIZERLIB = '/path/to/the/latin-macronizer/'
-
-Finally, initialize the macronizer:
+Finally, initialize the macronizer (populating the database):
 
   python macronize.py --initialize
 
@@ -70,9 +71,39 @@ You can now test it with the following command
 
   python macronize.py --test
 
-Good luck! In case of problems, contact me at johan.winge@gmail.com and I will do my best to assist you.
+If you are presented with "Ō orbis terrārum tē salūtō!", you know the
+Macronizer works as it should.
 
-If all is well so far, you may now also consider running the web script
+To recover a couple of hundred megabytes of disk space you can delete
+the RFTagger and the treebank directories:
+
+  rm -Rf RFTagger treebank_data
+
+If you have followed this guide to the letter it is probably the case
+that the main directory latin-macronizer resides within your home
+dir. To make a more clean and robust installation, it is probably a
+good idea to move it to /opt/ or /usr/local/. I will choose the later:
+
+  cd ..
+  sudo mv latin-macronizer /usr/local/
+
+Edit the front-end script macronize.py and update the constant to
+point to the right directory:
+
+  MACRONIZERLIB = '/usr/local/latin-macronizer/'
+
+Then add a symlink in /usr/local/bin/:
+
+  sudo ln -s /usr/local/latin-macronizer/macronize.py /usr/local/bin/macronize
+  sudo chmod 755 /usr/local/bin/macronize
+
+Changing the owner to root doesn't hurt:
+
+  sudo chown -R root.root /usr/local/latin-macronizer/
+
+You should now be able to invoke "macronize" from any location.
+
+If all is well so far, you may finally consider running the web script
 locally. The right way to set up Apache may vary on different systems,
 and you have many options to configure in the way you prefer, so this
 is just a quick and dirty guide to get something working. Adapt to your
@@ -99,8 +130,11 @@ Then save the configuration, and restart:
 
 Make a link to the script, and make it executable:
 
-  sudo ln -s /complete/path/to/macronize.py /var/www/html/macronize.py
+  sudo ln -s /usr/local/latin-macronizer/macronize.py /var/www/html/macronize.py
   sudo chmod 755 /var/www/html/macronize.py
 
 Hopefully, you can now find the macronizer working at http://localhost/macronize.py
+
+Good luck! In case of problems, contact me at johan.winge@gmail.com
+and I will do my best to assist you.
 
