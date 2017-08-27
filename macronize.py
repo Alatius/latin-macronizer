@@ -31,6 +31,8 @@ import unicodedata
 PROSE = 'prose'
 HEXAMETER = 'hexameter'
 ELEGIACS = 'elegiacs'
+HENDECA = 'hendeca'
+IAMBTRIDI = 'iambtridi'
 TRUNCATETHRESHOLD = 20000
 
 if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
@@ -88,6 +90,10 @@ if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
                 macronizer.scan([Macronizer.dactylichexameter])
             elif scan == ELEGIACS:
                 macronizer.scan([Macronizer.dactylichexameter, Macronizer.dactylicpentameter])
+            elif scan == HENDECA:
+                macronizer.scan([Macronizer.hendecasyllable])
+            elif scan == IAMBTRIDI:
+                macronizer.scan([Macronizer.iambictrimeter, Macronizer.iambicdimeter])
             macronizedtext = macronizer.gettext(domacronize, alsomaius, performutov, performitoj, markambigs=False)
             #sys.stdout.write(macronizedtext)
         except Exception as inst:
@@ -96,10 +102,13 @@ if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
     print('</textarea><br>')
     print('<input type="checkbox" name="macronize" onchange="toggleDisabled(this.checked)" value="on" %s> Mark long vowels.<br>' % ("checked" if domacronize else ""))
     print(u'&nbsp;&nbsp;&nbsp;<input class="macronizersetting" type="checkbox" name="alsomaius" value="on" %s> Also mark <i>māius</i> etc.<br>' % ("checked" if alsomaius else ""))
-    print('&nbsp;&nbsp;&nbsp;To improve the result, try to scan the text as...<br>')
-    print('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input class="macronizersetting" type="radio" name="scan" value="%s" %s> Prose (no scansion).' % (PROSE, "checked" if scan == PROSE else ""))
-    print('<input class="macronizersetting" type="radio" name="scan" value="%s" %s> Dactylic hexameters.' % (HEXAMETER, "checked" if scan == HEXAMETER else ""))
-    print('<input class="macronizersetting" type="radio" name="scan" value="%s" %s> Elegiac distichs.<br>' % (ELEGIACS, "checked" if scan == ELEGIACS else ""))
+    print('&nbsp;&nbsp;&nbsp;To improve the result, try to scan the text as <select name="scan">')
+    print('<option value="%s"%s>prose (no scansion)</option>' % (PROSE, " selected" if scan == PROSE else ""))
+    print('<option value="%s"%s>dactylic hexameters</option>' % (HEXAMETER, " selected" if scan == HEXAMETER else ""))
+    print('<option value="%s"%s>elegiac distichs</option>' % (ELEGIACS, " selected" if scan == ELEGIACS else ""))
+    print('<option value="%s"%s>hendecasyllables</option>' % (HENDECA, " selected" if scan == HENDECA else ""))
+    print('<option value="%s"%s>iambic trimeter + dimeter</option>' % (IAMBTRIDI, " selected" if scan == IAMBTRIDI else ""))
+    print('</select>.<br>')
     print(u'&nbsp;&nbsp;&nbsp;<input class="macronizersetting" type="checkbox" name="doevaluate" value="off" %s> Compare result with correctly macronized input text.<br>' % ("checked" if doevaluate else ""))
     print('<input type="checkbox" name="utov" value="on" %s> Convert u to v.<br>' % ("checked" if performutov else ""))
     print('<input type="checkbox" name="itoj" value="on" %s> Convert i to j.<br>' % ("checked" if performitoj else ""))
@@ -126,6 +135,10 @@ if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
             macronizer.tokenization.show()
             print('</pre>')
     print("""<h2>News</h2>
+
+    <p>August 2017: More meters added! The macronizer can now handle hendecasyllables as well as distichs of iambic trimeters and dimeters (<i>Beātus ille quī procul negōtiīs...</i>).</p>
+
+    <p>May 2017: I have now made the macronized text editable, which means that it will now be much easier to correct typos or misspellings while proofreading the text.</p>
 
     <p>October 2016: The performance on texts written in all uppercase letters has been greatly improved.</p>
 
