@@ -22,10 +22,9 @@ import cgi
 import os
 import sys
 import codecs
-from xml.sax.saxutils import escape
 sys.path.append(MACRONIZERLIB)
 os.chdir(MACRONIZERLIB)
-from macronizer import Macronizer
+from macronizer import Macronizer, evaluate
 import unicodedata
 
 PROSE = 'prose'
@@ -35,12 +34,12 @@ HENDECA = 'hendeca'
 IAMBTRIDI = 'iambtridi'
 TRUNCATETHRESHOLD = 20000
 
-if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
+if 'REQUEST_METHOD' in os.environ:  # If run as a CGI script
     scriptname = os.environ['REQUEST_URI'].split('/')[-1]
     htmlform = cgi.FieldStorage()
-    texttomacronize = htmlform.getvalue('textcontent',"").decode("utf8").replace("\r","")
+    texttomacronize = htmlform.getvalue('textcontent', "").decode("utf8").replace("\r", "")
     texttomacronize = unicodedata.normalize('NFC', texttomacronize)
-    #texttomacronize = texttomacronize[:TRUNCATETHRESHOLD]
+    # texttomacronize = texttomacronize[:TRUNCATETHRESHOLD]
     domacronize = True if texttomacronize == "" or htmlform.getvalue('macronize') else False
     alsomaius = True if htmlform.getvalue('alsomaius') else False
     scan = htmlform.getvalue('scan')
@@ -77,7 +76,7 @@ if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
 <body>""")
     print('<h1><a href="' + scriptname + '">A Latin Macronizer</a></h1>')
     print('<p>Please enter a Latin text!</p>')
-    #print( '<p>Note: In order to avoid time out from the server, input longer than %s characters will be truncated. Sorry about that!</p>' % (TRUNCATETHRESHOLD))
+    # print('<p>Note: In order to avoid time out from the server, input longer than %s characters will be truncated. Sorry about that!</p>' % (TRUNCATETHRESHOLD))
     print('<form action="' + scriptname+'" method="post">')
     print('<p><textarea name="textcontent" onclick="enlarge(this)" cols="100" rows="%s">' % ('20' if texttomacronize == "" else '3'))
     if texttomacronize == "":
@@ -95,7 +94,7 @@ if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
             elif scan == IAMBTRIDI:
                 macronizer.scan([Macronizer.iambictrimeter, Macronizer.iambicdimeter])
             macronizedtext = macronizer.gettext(domacronize, alsomaius, performutov, performitoj, markambigs=False)
-            #sys.stdout.write(macronizedtext)
+            # sys.stdout.write(macronizedtext)
         except Exception as inst:
             print(inst.args[0])
             macronizedtext = ""
@@ -126,8 +125,8 @@ if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
     if macronizedtext != "":
         if doevaluate:
             print('<h2>Evaluation</h2>')
-            (accuracy, evaluatedtext) = macronizer.evaluate(texttomacronize, macronizedtext)
-            print('<div class="prewrap">%s</div>' % (evaluatedtext))
+            (accuracy, evaluatedtext) = evaluate(texttomacronize, macronizedtext)
+            print('<div class="prewrap">%s</div>' % evaluatedtext)
             print('<p>Accuracy: %f%%</p>' % (accuracy * 100))
         if dodebug:
             print('<h2>Debug info</h2>')
@@ -163,7 +162,7 @@ if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
     <img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
     </p>
     </form>
-""")
+    """)
     print("""<h2>Information</h2>
 
     <p>This automatic macronizer lets you quickly mark all the long vowels
@@ -273,7 +272,7 @@ if 'REQUEST_METHOD' in os.environ: # If run as a CGI script
     print('</body>')
     print('</html>')
 
-else: # Run as a free-standing Python script
+else:  # Run as a free-standing Python script
 
     domacronize = True
     alsomaius = False
@@ -281,8 +280,8 @@ else: # Run as a free-standing Python script
     performitoj = False
     dotest = False
     doevaluation = False
-    infilename = ""
-    outfilename = ""
+    infilename = None
+    outfilename = None
     iterator = sys.argv.__iter__()
     scriptname = next(iterator)
     for arg in iterator:
@@ -317,9 +316,17 @@ else: # Run as a free-standing Python script
         elif arg == "-j" or arg == "--itoj":
             performitoj = True
         elif arg == "-i":
-            infilename = next(iterator)
+            try:
+                infilename = next(iterator)
+            except StopIteration:
+                print("Error: Please supply a file name after -i.")
+                exit(1)
         elif arg == "-o":
-            outfilename = next(iterator)
+            try:
+                outfilename = next(iterator)
+            except StopIteration:
+                print("Error: Please supply a file name after -o.")
+                exit(1)
         elif arg == "--test":
             dotest = True
         elif arg == "--evaluate":
@@ -327,40 +334,35 @@ else: # Run as a free-standing Python script
         else:
             print("Unknown argument:", arg)
             exit(1)
-    #endfor
-    try:
-        macronizer = Macronizer()
-        if dotest:
-            texttomacronize = u"O orbis terrarum te saluto!\n"
-        else:
-            if infilename == "":
-                if sys.version_info[0] < 3:
-                    infile = codecs.getreader('utf-8')(sys.stdin)
-                else:
-                    infile = sys.stdin
+    # endfor
+
+    macronizer = Macronizer()
+    if dotest:
+        texttomacronize = u"O orbis terrarum te saluto!\n"
+    else:
+        if infilename is None:
+            if sys.version_info[0] < 3:
+                infile = codecs.getreader('utf-8')(sys.stdin)
             else:
-                infile = codecs.open(infilename, 'r', 'utf8')
-            texttomacronize = infile.read()
-        #endif
-        texttomacronize = unicodedata.normalize('NFC', texttomacronize)
-        macronizer.settext(texttomacronize)
-        macronizedtext = macronizer.gettext(domacronize, alsomaius, performutov, performitoj, markambigs=False)
-	if doevaluation:
-            (accuracy, dummy) = macronizer.evaluate(texttomacronize, macronizedtext)
-            print("Accuracy: %f" % (accuracy*100))
+                infile = sys.stdin
         else:
-            if outfilename == "":
-                if sys.version_info[0] < 3:
-                    outfile = codecs.getwriter('utf8')(sys.stdout)
-                else:
-                    outfile = sys.stdout
+            infile = codecs.open(infilename, 'r', 'utf8')
+        texttomacronize = infile.read()
+    # endif
+    texttomacronize = unicodedata.normalize('NFC', texttomacronize)
+    macronizer.settext(texttomacronize)
+    macronizedtext = macronizer.gettext(domacronize, alsomaius, performutov, performitoj, markambigs=False)
+    if doevaluation:
+        (accuracy, _) = evaluate(texttomacronize, macronizedtext)
+        print("Accuracy: %f" % (accuracy*100))
+    else:
+        if outfilename is None:
+            if sys.version_info[0] < 3:
+                outfile = codecs.getwriter('utf8')(sys.stdout)
             else:
-                outfile = codecs.open(outfilename, 'w', 'utf8')
-            outfile.write(macronizedtext)
-    except Exception as inst:
-        print(inst.args[0])
-        exit(1)
+                outfile = sys.stdout
+        else:
+            outfile = codecs.open(outfilename, 'w', 'utf8')
+        outfile.write(macronizedtext)
 
-#endif
-
-
+# endif

@@ -16,94 +16,105 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-MORPHEUSDIR = 'morpheus/'
-RFTAGGERDIR = '/usr/local/bin/'
-USEMORPHEUSDATABASE = True
-DBNAME = 'macronizer'
-DBUSER = 'theusername'
-DBPASSWORD = 'thepassword'
-DBHOST = 'localhost'
-
 import codecs
 import os
 import re
 import sys
 from tempfile import mkstemp
-from cgi import escape as escapehtml
+import warnings
+from collections import defaultdict
 
 import postags
 
 try:
     import psycopg2
 except ImportError:
-    USEMORPHEUSDATABASE = False
+    warnings.warn("Could not import psycopg2. Performance will be slower and worse.", ImportWarning)
+    psycopg2 = None
 
 if sys.version_info[0] < 3:
+    from cgi import escape
     from itertools import izip as zip
     reload(sys)
     sys.setdefaultencoding('utf8')
 else:
-    pass
+    from html import escape
     # zip() is a builtin in Python 3.x
     # Python 3 doesn't use sys.setdefaultencoding()
 
+
+MORPHEUSDIR = 'morpheus/'
+RFTAGGERDIR = '/usr/local/bin/'
+DBNAME = 'macronizer'
+DBUSER = 'theusername'
+DBPASSWORD = 'thepassword'
+DBHOST = 'localhost'
+
+
 def pairwise(iterable):
-    "s -> (s0,s1), (s2,s3), (s4, s5), ..."
+    """s -> (s0,s1), (s2,s3), (s4, s5), ..."""
     a = iter(iterable)
     return zip(a, a)
-# enddef
+
 
 def toascii(txt):
     for source, replacement in [(u"æ", "ae"), (u"Æ", "Ae"), (u"œ", "oe"), (u"Œ", "Oe"),
                                 (u"ä", "a"), (u"ë", "e"), (u"ï", "i"), (u"ö", "o"), (u"ü", "u"), (u"ÿ", "u")]:
         txt = txt.replace(source, replacement)
     return txt
-# enddef
+
 
 def touiorthography(txt):
     for source, replacement in [(u"v", "u"), (u"U", "V"), (u"j", "i"), (u"J", u"I")]:
         txt = txt.replace(source, replacement)
     return txt
-# enddef
 
-class Wordlist():
+
+def clean_lemma(lemma):
+    return lemma.replace("#", "").replace("1", "").replace(" ", "+").replace("-", "").replace("^", "").replace("_", "")
+
+
+class Wordlist:
     def __init__(self):
-        if USEMORPHEUSDATABASE:
+        self.unknownwords = set()  # Unknown to Morpheus
+        self.formtolemmas = defaultdict(list)
+        self.formtoaccenteds = defaultdict(list)
+        self.formtotaglemmaaccents = defaultdict(list)
+        if psycopg2:
             try:
                 self.dbconn = psycopg2.connect(
                     "dbname='%s' host='%s' user='%s' password='%s'" % (DBNAME, DBHOST, DBUSER, DBPASSWORD))
                 self.dbcursor = self.dbconn.cursor()
-            except:
-                raise Exception("Error: Could not connect to the database.")
-        self.unknownwords = set()  # Unknown to Morpheus
-        self.formtolemmas = {}
-        self.formtoaccenteds = {}
-        self.formtotaglemmaaccents = {}
-        if not USEMORPHEUSDATABASE:
+            except Exception:
+                raise Exception("Could not connect to the PostgreSQL database.")
+        else:
             self.loadwordsfromfile("macrons.txt")
     # enddef
 
     def reinitializedatabase(self):
-        if USEMORPHEUSDATABASE:
+        if psycopg2:
             self.dbcursor.execute("DROP TABLE IF EXISTS morpheus")
             self.dbcursor.execute(
                 "CREATE TABLE morpheus(id SERIAL PRIMARY KEY, wordform TEXT NOT NULL, morphtag TEXT, lemma TEXT, accented TEXT)")
-            self.loadwordsfromfile("macrons.txt", storeindb = True)
+            self.loadwordsfromfile("macrons.txt", storeindb=True)
             self.dbcursor.execute("ANALYZE")
             self.dbcursor.execute("CREATE INDEX morpheus_wordform_index ON morpheus USING hash (wordform)")
             self.dbconn.commit()
+        else:
+            raise Exception("Could not import psycopg2.")
     # enddef
 
-    def loadwordsfromfile(self, filename, storeindb = False):
-        plaindbfile = codecs.open(filename, 'r', 'utf8')
-        for line in plaindbfile:
-            if line.startswith("#"):
-                continue
-            [wordform, morphtag, lemma, accented] = line.split()
-            self.addwordparse(wordform, morphtag, lemma, accented)
-            if storeindb and USEMORPHEUSDATABASE:
-                self.dbcursor.execute("INSERT INTO morpheus (wordform, morphtag, lemma, accented) VALUES (%s,%s,%s,%s)",
-                                      (wordform, morphtag, lemma, accented))
+    def loadwordsfromfile(self, filename, storeindb=False):
+        with codecs.open(filename, 'r', 'utf8') as plaindbfile:
+            for line in plaindbfile:
+                if line.startswith("#"):
+                    continue
+                [wordform, morphtag, lemma, accented] = line.split()
+                self.addwordparse(wordform, morphtag, lemma, accented)
+                if psycopg2 and storeindb:
+                    self.dbcursor.execute(
+                        "INSERT INTO morpheus (wordform, morphtag, lemma, accented) VALUES (%s,%s,%s,%s)",
+                        (wordform, morphtag, lemma, accented))
     # enddef
 
     def loadwords(self, words):  # Expects a set of lowercase words
@@ -117,16 +128,16 @@ class Wordlist():
             self.crunchwords(unseenwords)  # Try to parse unseen words with Morpheus, and add result to the database
             for word in unseenwords:
                 if not self.loadwordfromdb(word):
-                    raise Exception("Error: Could not store " + word + " in the database.")
+                    raise Exception("Could not store %s in the database." % word)
     # enddef
 
     def loadwordfromdb(self, word):
-        if USEMORPHEUSDATABASE:
+        if psycopg2:
             try:
-                self.dbcursor.execute("SELECT wordform, morphtag, lemma, accented FROM morpheus WHERE wordform = %s", (word,))
-            except:
-                raise Exception("Error: Database table is missing. Please initialize the database.")
-            # endtry
+                self.dbcursor.execute(
+                    "SELECT wordform, morphtag, lemma, accented FROM morpheus WHERE wordform = %s", (word,))
+            except Exception:
+                raise Exception("Database table is missing. Please reset the database using --initialize.")
             rows = self.dbcursor.fetchall()
             if len(rows) == 0:
                 return False
@@ -138,12 +149,12 @@ class Wordlist():
     # enddef
 
     def addwordparse(self, wordform, morphtag, lemma, accented):
-        if accented == None:
+        if accented is None:
             self.unknownwords.add(wordform)
         else:
-            self.formtolemmas[wordform] = self.formtolemmas.get(wordform, []) + [lemma]
-            self.formtoaccenteds[wordform] = self.formtoaccenteds.get(wordform, []) + [accented.lower()]
-            self.formtotaglemmaaccents[wordform] = self.formtotaglemmaaccents.get(wordform, []) + [(morphtag, lemma, accented)]
+            self.formtolemmas[wordform].append(lemma)
+            self.formtoaccenteds[wordform].append(accented.lower())
+            self.formtotaglemmaaccents[wordform].append((morphtag, lemma, accented))
     # enddef
 
     def crunchwords(self, words):
@@ -151,62 +162,68 @@ class Wordlist():
         os.close(morphinpfd)
         crunchedfd, crunchedfname = mkstemp()
         os.close(crunchedfd)
-        morphinpfile = codecs.open(morphinpfname, 'w', 'utf8')
-        for word in words:
-            morphinpfile.write(word.strip().lower() + '\n')
-            morphinpfile.write(word.strip().capitalize() + '\n')
-        morphinpfile.close()
-        os.system("MORPHLIB=" + MORPHEUSDIR + "stemlib " + MORPHEUSDIR + "bin/cruncher -L < " + morphinpfname + " > " + crunchedfname + " 2> /dev/null")
+        with codecs.open(morphinpfname, 'w', 'utf8') as morphinpfile:
+            for word in words:
+                morphinpfile.write(word.strip().lower() + '\n')
+                morphinpfile.write(word.strip().capitalize() + '\n')
+        os.system("MORPHLIB=%sstemlib %sbin/cruncher -L < %s > %s 2> /dev/null" %
+                  (MORPHEUSDIR, MORPHEUSDIR, morphinpfname, crunchedfname))
         os.remove(morphinpfname)
         with codecs.open(crunchedfname, 'r', 'utf8') as crunchedfile:
             morpheus = crunchedfile.read()
         os.remove(crunchedfname)
         crunchedwordforms = {}
         knownwords = set()
-        for wordform, NLs in pairwise(morpheus.split("\n")):
+        for wordform, nls in pairwise(morpheus.split("\n")):
             wordform = wordform.strip().lower()
-            NLs = NLs.strip()
-            crunchedwordforms[wordform] = crunchedwordforms.get(wordform, "") + NLs
-        for wordform in crunchedwordforms:
-            NLs = crunchedwordforms[wordform]
+            nls = nls.strip()
+            crunchedwordforms[wordform] = crunchedwordforms.get(wordform, "") + nls
+        for wordform, nls in crunchedwordforms.items():
             parses = []
-            for NL in NLs.split("<NL>"):
-                NL = NL.replace("</NL>", "")
-                NLparts = NL.split()
-                if len(NLparts) > 0:
-                    parses += postags.Morpheus2Parses(wordform, NL)
-            lemmatagtoaccenteds = {}
+            for nl in nls.split("<NL>"):
+                nl = nl.replace("</NL>", "")
+                nlparts = nl.split()
+                if len(nlparts) > 0:
+                    parses += postags.morpheus_to_parses(wordform, nl)
+            lemmatagtoaccenteds = defaultdict(list)
             for parse in parses:
-                lemma = parse[postags.LEMMA].replace("#", "").replace("1", "").replace(" ", "+").replace("-", "").replace("^","").replace("_","")
+                lemma = clean_lemma(parse[postags.LEMMA])
                 parse[postags.LEMMA] = lemma
                 accented = parse[postags.ACCENTEDFORM]
-                if parse[postags.LEMMA].startswith("trans") and accented[3] != "_":  # Work around shortcoming in Morpheus
+                # Work around shortcoming in Morpheus, adding _ in tradu_co_, etc.:
+                if parse[postags.LEMMA].startswith("trans") and accented[3] != "_":
                     accented = accented[:3] + "_" + accented[3:]
                 parse[postags.ACCENTEDFORM] = accented
-                tag = postags.Parse2LDT(parse)
-                lemmatagtoaccenteds[(lemma, tag)] = lemmatagtoaccenteds.get((lemma, tag), []) + [accented]
+                tag = postags.parse_to_ldt(parse)
+                lemmatagtoaccenteds[(lemma, tag)].append(accented)
             if len(lemmatagtoaccenteds) == 0:
                 continue
-            knownwords.add(wordform);
+            knownwords.add(wordform)
             for (lemma, tag), accenteds in lemmatagtoaccenteds.items():
-                # Sometimes there are several different accented forms; prefer 'volvit' to 'voluit', 'Ju_lius' to 'Iu_lius' etc.
+                # Sometimes there are multiple accented forms; prefer 'volvit' to 'voluit', 'Ju_lius' to 'Iu_lius' etc.:
                 bestaccented = sorted(accenteds, key=lambda x: x.count('v') + x.count('j') + x.count('J'))[-1]
                 lemmatagtoaccenteds[(lemma, tag)] = bestaccented
             for (lemma, tag), accented in lemmatagtoaccenteds.items():
                 self.dbcursor.execute("INSERT INTO morpheus (wordform, morphtag, lemma, accented) VALUES (%s,%s,%s,%s)",
                                       (wordform, tag, lemma, accented))
-        ## The remaining were unknown to Morpheus:
+        # The remaining were unknown to Morpheus:
         for wordform in words - knownwords:
             self.dbcursor.execute("INSERT INTO morpheus (wordform) VALUES (%s)", (wordform,))
-        ## Remove duplicates:
+        # Remove duplicates:
         self.dbcursor.execute(
-            "DELETE FROM morpheus USING morpheus m2 WHERE morpheus.wordform = m2.wordform AND (morpheus.morphtag = m2.morphtag OR morpheus.morphtag IS NULL AND m2.morphtag IS NULL) AND (morpheus.lemma = m2.lemma OR morpheus.lemma IS NULL AND m2.lemma IS NULL) AND (morpheus.accented = m2.accented OR morpheus.accented IS NULL AND m2.accented IS NULL) AND morpheus.id > m2.id")
+            "DELETE FROM morpheus USING morpheus m2 WHERE morpheus.wordform = m2.wordform AND "
+            "(morpheus.morphtag = m2.morphtag OR morpheus.morphtag IS NULL AND m2.morphtag IS NULL) AND "
+            "(morpheus.lemma = m2.lemma OR morpheus.lemma IS NULL AND m2.lemma IS NULL) AND "
+            "(morpheus.accented = m2.accented OR morpheus.accented IS NULL AND m2.accented IS NULL) AND "
+            "morpheus.id > m2.id")
         self.dbconn.commit()
-        # enddef
+    # enddef
 # endclass
+
 
 prefixeswithshortj = ("bij", "fidej", "Foroj", "foroj", "ju_rej", "multij", "praej", "quadrij",
                       "rej", "retroj", "se_mij", "sesquij", "u_nij", "introj")
+
 
 class Token:
     def __init__(self, text):
@@ -248,7 +265,7 @@ class Token:
         if domacronize and alsomaius and 'j' in accented:
             if not accented.startswith(prefixeswithshortj):
                 accented = re.sub('([aeiouy])(j[aeiouy])', r'\1_\2', accented)
-        if (not domacronize or not "_" in accented) and not performutov and not performitoj:
+        if (not domacronize or "_" not in accented) and not performutov and not performitoj:
             self.macronized = plain
             return
         if self.isenclitic and not (plain.lower() == "ue" and performutov):
@@ -274,9 +291,8 @@ class Token:
                 return 1
             return 2
 
-        def delcost(b):
+        def delcost(_):
             return 2
-        # enddef
 
         n = len(plain) + 1
         m = len(accented) + 1
@@ -299,7 +315,7 @@ class Token:
             upcost = distance[i][j-1] if j > 0 else 1000
             diagcost = distance[i-1][j-1] if j > 0 and i > 0 else 1000
             leftcost = distance[i-1][j] if i > 0 else 1000
-            if diagcost <= upcost and diagcost < leftcost:  ## To-do: review the comparisons...
+            if diagcost <= upcost and diagcost < leftcost:  # To-do: review the comparisons...
                 i -= 1
                 j -= 1
                 if performutov and accented[j].lower() == 'v' and plain[i] == 'u':
@@ -322,7 +338,7 @@ class Token:
         # Some strange morpheus output (e.g. de_e_recti_) may give an additional _ in the result:
         result = result.replace("__", "_")
         self.macronized = result
-        # enddef
+    # enddef
 # endclass
 
 
@@ -394,7 +410,7 @@ class Tokenization:
                     tobeadded = oldtoken.split(3, True)
                 elif len(oldlc) > 2 and oldlc.endswith(("ve", "ue", "ne", "st")):
                     tobeadded = oldtoken.split(2, True)
-            #endif
+            # endif
             if len(tobeadded) == 0:
                 newtokens.append(oldtoken)
             else:
@@ -410,7 +426,7 @@ class Tokenization:
             if token.isword:
                 token.show()
             if token.endssentence:
-                print
+                print()
         if len(self.tokens) > 500:
             print("... (truncated) ...")
     # enddef
@@ -420,71 +436,86 @@ class Tokenization:
         os.close(totaggerfd)
         fromtaggerfd, fromtaggerfname = mkstemp()
         os.close(fromtaggerfd)
-        totaggerfile = codecs.open(totaggerfname, 'w', 'utf8')
-        for token in self.tokens:
-            if not token.isspace:
-                tokentext = token.text
-                if tokentext == tokentext.upper():
-                    tokentext = tokentext.lower()
-                if token.hasenclitic:
-                    savedencliticbearer = toascii(tokentext)
-                    continue
-                totaggerfile.write(toascii(tokentext) + "\n")
-                if token.isenclitic:
-                    totaggerfile.write(savedencliticbearer + "\n")
-            if token.endssentence:
-                totaggerfile.write("\n")
-        totaggerfile.close()
-        os.system(RFTAGGERDIR + "rft-annotate -s -q rftagger-ldt.model " + totaggerfname + " " + fromtaggerfname)
-        fromtaggerfile = codecs.open(fromtaggerfname, 'r', 'utf8')
-        for token in self.tokens:
-            if not token.isspace:
-                try:
+        savedencliticbearer = None
+        with codecs.open(totaggerfname, 'w', 'utf8') as totaggerfile:
+            for token in self.tokens:
+                if not token.isspace:
+                    tokentext = token.text
+                    if tokentext == tokentext.upper():
+                        tokentext = tokentext.lower()
                     if token.hasenclitic:
-                        (taggedenclititoken, enclitictag) = fromtaggerfile.readline().strip().split("\t")
+                        savedencliticbearer = toascii(tokentext)
+                        continue
+                    totaggerfile.write(toascii(tokentext) + "\n")
                     if token.isenclitic:
-                        (taggedtoken, tag) = (taggedenclititoken, enclitictag)
-                    else:
-                        (taggedtoken, tag) = fromtaggerfile.readline().strip().split("\t")
-                    if token.text == token.text.upper():
-                        assert taggedtoken == toascii(token.text.lower())
-                    else:
-                        assert taggedtoken == toascii(token.text)
-                except:
-                    raise Exception("Error: Something went wrong with the tagging.")
-                # endtry
-                token.tag = tag.replace(".", "")
-            if token.endssentence:
-                fromtaggerfile.readline()
-        fromtaggerfile.close()
+                        assert savedencliticbearer is not None
+                        totaggerfile.write(savedencliticbearer + "\n")
+                        savedencliticbearer = None
+                if token.endssentence:
+                    totaggerfile.write("\n")
+        rftcommand = RFTAGGERDIR + "rft-annotate -s -q rftagger-ldt.model %s %s" % (totaggerfname, fromtaggerfname)
+        exitcode = os.system(rftcommand)
+        if exitcode != 0:
+            raise Exception("Failed to execute: %s" % rftcommand)
+        with codecs.open(fromtaggerfname, 'r', 'utf8') as fromtaggerfile:
+            (taggedenclititoken, enclitictag) = (None, None)
+            line = None
+            for token in self.tokens:
+                if not token.isspace:
+                    try:
+                        if token.hasenclitic:
+                            line = fromtaggerfile.readline().strip()
+                            assert line
+                            assert line.count('\t') == 1
+                            (taggedenclititoken, enclitictag) = line.split("\t")
+                        if token.isenclitic:
+                            assert taggedenclititoken is not None
+                            assert enclitictag is not None
+                            (taggedtoken, tag) = (taggedenclititoken, enclitictag)
+                        else:
+                            line = fromtaggerfile.readline().strip()
+                            assert line
+                            assert line.count('\t') == 1
+                            (taggedtoken, tag) = line.split('\t')
+                        if token.text == token.text.upper():
+                            assert taggedtoken == toascii(token.text.lower())
+                        else:
+                            assert taggedtoken == toascii(token.text)
+                    except AssertionError:
+                        raise Exception("Error: Could not handle tagging data in file %s:\n'%s'" %
+                                        (fromtaggerfname, "Premature End Of File." if not line else line))
+                    # endtry
+                    token.tag = tag.replace(".", "")
+                if token.endssentence:
+                    line = fromtaggerfile.readline()
         os.remove(totaggerfname)
         os.remove(fromtaggerfname)
     # enddef
 
     def addlemmas(self, wordlist):
-        lemmafrequency = {}
-        wordlemmafreq = {}
-        wordformtolemmasintrain = {}
-        train = codecs.open('ldt-corpus.txt', 'r', 'utf8')
-        for line in train:
-            if '\t' in line:
-                [wordform, tag, lemma] = line.strip().split('\t')
-                lemmafrequency[lemma] = lemmafrequency.get(lemma, 0) + 1
-                wordlemmafreq[(wordform, lemma)] = wordlemmafreq.get((wordform, lemma), 0) + 1
-                wordformtolemmasintrain[wordform] = wordformtolemmasintrain.get(wordform, set()) | set([lemma])
+        lemmafrequency = defaultdict(int)
+        wordlemmafreq = defaultdict(int)
+        wordformtolemmasincorpus = defaultdict(set)
+        with codecs.open('ldt-corpus.txt', 'r', 'utf8') as corpus:
+            for line in corpus:
+                if '\t' in line:
+                    [wordform, _, lemma] = line.strip().split('\t')
+                    lemmafrequency[lemma] += 1
+                    wordlemmafreq[(wordform, lemma)] += 1
+                    wordformtolemmasincorpus[wordform].add(lemma)
         for token in self.tokens:
             wordform = toascii(token.text)
             bestlemma = "-"
             maxfreq = -1
-            if wordform in wordformtolemmasintrain:
-                for trainlemma in wordformtolemmasintrain[wordform]:
+            if wordform in wordformtolemmasincorpus:
+                for trainlemma in wordformtolemmasincorpus[wordform]:
                     if wordlemmafreq[(wordform, trainlemma)] > maxfreq:
                         maxfreq = wordlemmafreq[(wordform, trainlemma)]
                         bestlemma = trainlemma
             elif wordform.lower() in wordlist.formtolemmas:
                 for lexlemma in wordlist.formtolemmas[wordform.lower()]:
-                    if lemmafrequency.get(lexlemma, 0) > maxfreq:
-                        maxfreq = lemmafrequency.get(lexlemma, 0)
+                    if lemmafrequency[lexlemma] > maxfreq:
+                        maxfreq = lemmafrequency[lexlemma]
                         bestlemma = lexlemma
             # endif
             token.lemma = bestlemma
@@ -509,15 +540,14 @@ class Tokenization:
             return previous_row[-1]
         # enddef
 
-        tagtoendings = {}
-        endingsfile = codecs.open("macronized-endings.txt", "r", "utf8")
-        for line in endingsfile:
-            line = line.strip().split("\t")
-            endingpairs = []
-            for ending in line[1:]:
-                endingpairs.append((ending, ending.replace("_", "").replace("^", "")))
-            tagtoendings[line[0]] = endingpairs
-        # endfor
+        tagtoendings = defaultdict(list)
+        with codecs.open("macronized-endings.txt", "r", "utf8") as endingsfile:
+            for line in endingsfile:
+                line = line.strip().split("\t")
+                endingpairs = []
+                for ending in line[1:]:
+                    endingpairs.append((ending, ending.replace("_", "").replace("^", "")))
+                tagtoendings[line[0]] = endingpairs
         for token in self.tokens:
             if not token.isword:
                 continue
@@ -528,9 +558,9 @@ class Tokenization:
             lemma = token.lemma
             if token.isenclitic:
                 token.accented = ["ve"] if token.text.lower() == "ue" else [token.text.lower()]
-            elif token.text.lower() == "ne" and token.hasenclitic:  ## Not nēque...
+            elif token.text.lower() == "ne" and token.hasenclitic:  # Not nēque...
                 token.accented = ["ne"]
-            elif len(set(wordlist.formtoaccenteds.get(wordform, []))) == 1:
+            elif len(set(wordlist.formtoaccenteds[wordform])) == 1:
                 token.accented = [wordlist.formtoaccenteds[wordform][0]]
             elif wordform in wordlist.formtotaglemmaaccents:
                 candidates = []
@@ -538,7 +568,7 @@ class Tokenization:
                     # Prefer lemmas with same capitalization as the token, unless the token is at
                     # the start of the sentence and capitalized, in which case any lemma is okay.
                     casedist = 0 if iscapital == lexlemma.istitle() or token.startssentence and iscapital else 1
-                    tagdist = postags.tagDist(tag, lextag)
+                    tagdist = postags.tag_distance(tag, lextag)
                     lemdist = levenshtein(lemma, lexlemma)
                     candidates.append((casedist, tagdist, lemdist, accented))
                 candidates.sort()
@@ -547,11 +577,11 @@ class Tokenization:
                     if accented not in token.accented and casedist == candidates[0][0]:
                         token.accented.append(accented)
             else:
-                ## Unknown word, but attempt to mark vowels in ending:
-                ## To-do: Better support for different capitalization and orthography
+                # Unknown word, but attempt to mark vowels in ending:
+                # To-do: Better support for different capitalization and orthography
                 token.accented = [token.text]
                 if any(i in token.text for i in u"aeiouyAEIOUY"):
-                    for (accentedending, plainending) in tagtoendings.get(tag, []):
+                    for (accentedending, plainending) in tagtoendings[tag]:
                         if wordform.endswith(plainending):
                             token.accented = [wordform[:-len(plainending)] + accentedending]
                             break
@@ -571,12 +601,12 @@ class Tokenization:
             accented = re.sub("_\^([bcdfgjklmnpqrstv]{2,}|[xz])", "\\1", accented)
             accented = re.sub("_\^m$", "m", accented)
             return accented
-        #enddef
+        # enddef
 
         def breakoutambiguous(accenteds):
             """If a vowel is ambiguous (_^), generate different accented forms,
             one where it is long, one when short."""
-            if accenteds == ['nescio_']: # An ad hoc fix
+            if accenteds == ['nescio_']:  # An ad hoc fix
                 accenteds = ['nescio_^']
             elif accenteds == ['u_ni_us']:
                 accenteds = ['u_ni_^us']
@@ -597,11 +627,11 @@ class Tokenization:
                         newaccented.append(parts[bitpos+1])
                     newaccenteds.append("".join(newaccented))
             return newaccenteds
-        #enddef
+        # enddef
 
         def segmentaccented(accented):
             """Split an accented form into a list of individual vowel phonemes and consonant clusters"""
-            if accented == "hoc": # Ad hoc fix. (Haha!)
+            if accented == "hoc":  # Ad hoc fix. (Haha!)
                 return ['o', 'cc']
             text = accented.lower().replace("qu", "q").replace("x", "cs").replace("z", "ds").replace("+", "^") + "#"
             segments = []
@@ -624,7 +654,7 @@ class Tokenization:
                     break
                 segmentstart = pos
             return segments
-        #enddef
+        # enddef
 
         def possiblescans(accentedcandidates, followingsegment):
             """A form with marked vowel lengths can be scanned differently, considering
@@ -634,7 +664,7 @@ class Tokenization:
             REPRIORITIZEPENALTY = 1
             MUTACUMLIQUIDAPENALTY = 1
             DIAERESISPENALTY = 2
-            NOSYNEZISPENALTY = 2 # in the context s or ng + u + vowel
+            NOSYNEZISPENALTY = 2  # in the context s or ng + u + vowel
             SYNEZISPENALTY = 3
             HIATUSPENALTY = 3
             isfirstaccented = True
@@ -656,7 +686,7 @@ class Tokenization:
                         elif thisseg in ["ae", "au", "ei", "oe", "eu"]:
                             news.append((penaltysofar, scansofar + "L"))
                             news.append((penaltysofar + DIAERESISPENALTY, scansofar + "VV"))
-                        elif thisseg == "u" and (prevseg.endswith("s") or prevseg.endswith("ng")) and nextseg[0] in "aeiouy":
+                        elif (prevseg.endswith("s") or prevseg.endswith("ng")) and thisseg == "u" and nextseg[0] in "aeiouy":
                             news.append((penaltysofar, scansofar + "C"))
                             news.append((penaltysofar + NOSYNEZISPENALTY, scansofar + "V"))
                         elif thisseg[0] in "ui" and (nextseg[0] in "aeiouy" or prevseg[0] in "aeiouy"):
@@ -671,7 +701,7 @@ class Tokenization:
                                 news.append((penaltysofar, scansofar + "C"))
                             else:
                                 news.append((penaltysofar, scansofar + "CC"))
-                        elif thisseg == "V": # next word begins with vowel
+                        elif thisseg == "V":  # next word begins with vowel
                             if scansofar.endswith("V") or scansofar.endswith("L"):
                                 news.append((penaltysofar, scansofar[:-1]))
                                 news.append((penaltysofar + HIATUSPENALTY, scansofar))
@@ -703,7 +733,7 @@ class Tokenization:
                     filteredscans.append((penalty, scansion, accented))
                     foundscansions.add(scansion)
             return filteredscans
-        #enddef
+        # enddef
 
         def scanverse(verse, automaton):
             """Input: The "verse" is a complicated list of the format
@@ -712,7 +742,7 @@ class Tokenization:
             It returns a tuple such as ([(0, 'in'), (2, 'no^va'), (4, 'fe^rt'), ...], 'DDSSDS') """
             def scanverserecurse(verse, wordindex, automaton, oldnodeindex):
                 if wordindex == len(verse):
-                    return ([], [], 0)
+                    return [], [], 0
                 (tokenindex, wordscansions) = verse[wordindex]
                 besttail = []
                 besttailfeet = []
@@ -730,15 +760,15 @@ class Tokenization:
                         feet.append(foot)
                     if nodeindex == -1 or finished and (nodeindex != 0 or wordindex != len(verse)-1):
                         continue
-                    (tail, tailfeet, tailpenalty) = scanverserecurse(verse, wordindex+1, automaton, nodeindex)
+                    tail, tailfeet, tailpenalty = scanverserecurse(verse, wordindex+1, automaton, nodeindex)
                     if scanpenalty + meterpenalty + tailpenalty < besttailpenalty:
                         besttail = [(tokenindex, accented)] + tail
                         besttailfeet = feet + tailfeet
                         besttailpenalty = scanpenalty + meterpenalty + tailpenalty
-                return (besttail, besttailfeet, besttailpenalty)
+                return besttail, besttailfeet, besttailpenalty
             # enddef
-            (indexaccentedpairs, feet, penalty) = scanverserecurse(verse, 0, automaton, 0)
-            return (indexaccentedpairs, "".join(feet))
+            indexaccentedpairs, feet, penalty = scanverserecurse(verse, 0, automaton, 0)
+            return indexaccentedpairs, "".join(feet)
         # enddef
 
         self.scannedfeet = []
@@ -808,7 +838,7 @@ class Tokenization:
                 result.append(token.macronized)
             elif not token.isword:
                 if markambiguous:
-                    result.append(escapehtml(token.macronized))
+                    result.append(escape(token.macronized))
                 else:
                     result.append(token.macronized)
             else:
@@ -824,8 +854,8 @@ class Tokenization:
                 result.append(unicodetext)
         return "".join(result)
     # enddef
-
 # endclass
+
 
 class Macronizer:
 
@@ -982,7 +1012,6 @@ class Macronizer:
         (19, 'S'): (20, 'u', 0),
         (20, 'L'): (0, '-', 0),
         (20, 'S'): (0, 'u', 0),
-
     }
 
     iambicdimeter = {
@@ -1019,7 +1048,6 @@ class Macronizer:
         (12, 'S'): (13, 'u', 0),
         (13, 'L'): (0, '-', 0),
         (13, 'S'): (0, 'u', 0)
-
     }
 
     def __init__(self):
@@ -1050,28 +1078,29 @@ class Macronizer:
         self.settext(text)
         return self.gettext(domacronize, alsomaius, performutov, performitoj, markambigs)
     # enddef
-
-    @staticmethod
-    def evaluate(goldstandard, macronizedtext):
-        vowelcount = 0
-        lengthcorrect = 0
-        outtext = []
-        for (a, b) in zip(list(goldstandard), list(macronizedtext)):
-            plaina = postags.removemacrons(a)
-            plainb = postags.removemacrons(b)
-            if touiorthography(toascii(plaina)) != touiorthography(toascii(plainb)):
-                raise Exception("Error: Text mismatch.")
-            if plaina in "AEIOUYaeiouy":
-                vowelcount += 1
-                if a == b:
-                    lengthcorrect += 1
-            if toascii(touiorthography(a)) == toascii(touiorthography(b)):
-                outtext.append(escapehtml(b))
-            else:
-                outtext.append('<span class="wrong">%s</span>' % b)
-        return (lengthcorrect / float(vowelcount), "".join(outtext))
-    # enddef
 # endclass
+
+
+def evaluate(goldstandard, macronizedtext):
+    vowelcount = 0
+    lengthcorrect = 0
+    outtext = []
+    for (a, b) in zip(list(goldstandard), list(macronizedtext)):
+        plaina = postags.removemacrons(a)
+        plainb = postags.removemacrons(b)
+        if touiorthography(toascii(plaina)) != touiorthography(toascii(plainb)):
+            raise Exception("Error: Text mismatch.")
+        if plaina in "AEIOUYaeiouy":
+            vowelcount += 1
+            if a == b:
+                lengthcorrect += 1
+        if toascii(touiorthography(a)) == toascii(touiorthography(b)):
+            outtext.append(escape(b))
+        else:
+            outtext.append('<span class="wrong">%s</span>' % b)
+    return lengthcorrect / float(vowelcount), "".join(outtext)
+# enddef
+
 
 if __name__ == "__main__":
     print("""Library for marking Latin texts with macrons. Copyright 2015-2017 Johan Winge.
