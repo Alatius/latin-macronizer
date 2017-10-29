@@ -26,6 +26,7 @@ sys.path.append(MACRONIZERLIB)
 os.chdir(MACRONIZERLIB)
 from macronizer import Macronizer, evaluate
 import unicodedata
+import argparse
 
 PROSE = 'prose'
 HEXAMETER = 'hexameter'
@@ -274,95 +275,56 @@ if 'REQUEST_METHOD' in os.environ:  # If run as a CGI script
 
 else:  # Run as a free-standing Python script
 
-    domacronize = True
-    alsomaius = False
-    performutov = False
-    performitoj = False
-    dotest = False
-    doevaluation = False
-    infilename = None
-    outfilename = None
-    iterator = sys.argv.__iter__()
-    scriptname = next(iterator)
-    for arg in iterator:
-        if arg == "-h" or arg == "--help" or arg == "-?":
-            print("python " + scriptname + " <arguments>")
-            print("Possible arguments:")
-            print("  -i <filename>  File to read from. (Default is stdin.)")
-            print("  -o <filename>  File to write to. (Default is stdout.)")
-            print("  -v  or --utov  Convert u to v where appropriate.")
-            print("  -j  or --itoj  Similarly convert i to j.")
-            print("  --nomacrons    Don't mark long vowels.")
-            print("  --maius        Do mark vowels also in māius and such.")
-            print("  --test         Mark vowels in a short example text.")
-            print("  --initialize   Reset the database (only necessary once).")
-            print("  --evaluate     Test accuracy against input gold standard.")
-            print("  -h  or --help  Show this information.")
-            exit(0)
-        elif arg == "--initialize":
-            try:
-                macronizer = Macronizer()
-                macronizer.wordlist.reinitializedatabase()
-            except Exception as inst:
-                print(inst.args[0])
-                exit(1)
-            exit(0)
-        elif arg == "--nomacrons":
-            domacronize = False
-        elif arg == "--maius":
-            alsomaius = True
-        elif arg == "-v" or arg == "--utov":
-            performutov = True
-        elif arg == "-j" or arg == "--itoj":
-            performitoj = True
-        elif arg == "-i":
-            try:
-                infilename = next(iterator)
-            except StopIteration:
-                print("Error: Please supply a file name after -i.")
-                exit(1)
-        elif arg == "-o":
-            try:
-                outfilename = next(iterator)
-            except StopIteration:
-                print("Error: Please supply a file name after -o.")
-                exit(1)
-        elif arg == "--test":
-            dotest = True
-        elif arg == "--evaluate":
-            doevaluation = True
-        else:
-            print("Unknown argument:", arg)
+    parser = argparse.ArgumentParser()
+    infile_group = parser.add_mutually_exclusive_group()
+    infile_group.add_argument("-i", "--infile", help="file to read from; otherwise stdin")
+    parser.add_argument("-o", "--outfile", help="file to write to; otherwise stdout")
+    parser.add_argument("-v", "--utov", action="store_true", help="convert u to v where appropriate")
+    parser.add_argument("-j", "--itoj", action="store_true", help="similarly convert i to j")
+    macrons_group = parser.add_mutually_exclusive_group()
+    macrons_group.add_argument("--nomacrons", action="store_true", help="don't mark long vowels")
+    macrons_group.add_argument("--maius", action="store_true", help="do mark vowels also in māius and such")
+    infile_group.add_argument("--test", action="store_true", help="mark vowels in a short example text")
+    parser.add_argument("--initialize", action="store_true", help="reset the database (only necessary once)")
+    parser.add_argument("--evaluate", action="store_true", help="test accuracy against input gold standard")
+    args = parser.parse_args()
+
+    if args.initialize:
+        try:
+            macronizer = Macronizer()
+            macronizer.wordlist.reinitializedatabase()
+        except Exception as inst:
+            print(inst.args[0])
             exit(1)
-    # endfor
+        exit(0)
 
     macronizer = Macronizer()
-    if dotest:
+    if args.test:
         texttomacronize = u"O orbis terrarum te saluto!\n"
     else:
-        if infilename is None:
+        if args.infile is None:
             if sys.version_info[0] < 3:
                 infile = codecs.getreader('utf-8')(sys.stdin)
             else:
                 infile = sys.stdin
         else:
-            infile = codecs.open(infilename, 'r', 'utf8')
+            infile = codecs.open(args.infile, 'r', 'utf8')
         texttomacronize = infile.read()
     # endif
     texttomacronize = unicodedata.normalize('NFC', texttomacronize)
     macronizer.settext(texttomacronize)
-    macronizedtext = macronizer.gettext(domacronize, alsomaius, performutov, performitoj, markambigs=False)
-    if doevaluation:
+    macronizedtext = macronizer.gettext(not args.nomacrons, args.maius, args.utov, args.itoj, markambigs=False)
+    if args.evaluate:
         (accuracy, _) = evaluate(texttomacronize, macronizedtext)
         print("Accuracy: %f" % (accuracy*100))
     else:
-        if outfilename is None:
+        if args.outfile is None:
             if sys.version_info[0] < 3:
                 outfile = codecs.getwriter('utf8')(sys.stdout)
             else:
                 outfile = sys.stdout
         else:
-            outfile = codecs.open(outfilename, 'w', 'utf8')
+            outfile = codecs.open(args.outfile, 'w', 'utf8')
         outfile.write(macronizedtext)
-
+    # endif
 # endif
