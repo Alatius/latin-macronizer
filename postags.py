@@ -394,11 +394,15 @@ def unicodeaccents(txt):
     return txt
 
 
-def removemacrons(txt):
-    for source, replacement in [(u"ā", u"a"), (u"ē", u"e"), (u"ī", u"i"), (u"ō", u"o"), (u"ū", u"u"), (u"ȳ", u"y"),
-                                (u"Ā", u"A"), (u"Ē", u"E"), (u"Ī", u"I"), (u"Ō", u"O"), (u"Ū", u"U"), (u"Ȳ", u"Y")]:
+def escape_macrons(txt):
+    for source, replacement in [(u"ā", "a_"), (u"ē", "e_"), (u"ī", "i_"), (u"ō", "o_"), (u"ū", "u_"), (u"ȳ", u"y_"),
+                                (u"Ā", "A_"), (u"Ē", "E_"), (u"Ī", "I_"), (u"Ō", "O_"), (u"Ū", "U_"), (u"Ȳ", u"Y_")]:
         txt = txt.replace(source, replacement)
     return txt
+
+
+def removemacrons(txt):
+    return escape_macrons(txt).replace('_', '')
 
 
 def filter_accents(accented):

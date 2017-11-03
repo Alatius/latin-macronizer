@@ -3,42 +3,34 @@
 
 import postags
 import codecs
+from collections import defaultdict
 
-macronsfile = codecs.open("macrons.txt","r","utf8")
-lexicon = codecs.open("rftagger-lexicon.txt","w","utf8")
+tag_to_accents = defaultdict(list)
+with codecs.open('macrons.txt', 'r', 'utf8') as macrons_file, \
+     codecs.open('rftagger-lexicon.txt', 'w', 'utf8') as lexicon_file:
+    for line in macrons_file:
+        [wordform, tag, lemma, accented] = line.split()
+        accented = accented.replace('_^', '').replace('^', '')
+        tag_to_accents[tag].append(postags.unicodeaccents(accented))
+        if accented[0].isupper():
+            wordform = wordform.title()
+        tag = '.'.join(list(tag))
+        lexicon_file.write("%s\t%s\t%s\n" % (wordform, tag, lemma))
 
-tagtoaccents = {}
-
-for line in macronsfile:
-    [wordform, tag, lemma, accented] = line.split()
-    accented = accented.replace("_^", "").replace("^", "")
-    tagtoaccents[tag] = tagtoaccents.get(tag,[]) + [postags.unicodeaccents(accented)]
-    if accented[0].isupper():
-        wordform = wordform.title()
-    tag = '.'.join(list(tag))
-    lexicon.write(wordform + '\t' + tag + '\t' + lemma + '\n')
-
-def escapedaccents(txt):
-    for replacement, source in [("a_",u"ā"),("e_",u"ē"),("i_",u"ī"),("o_",u"ō"),("u_",u"ū"),("y_",u"ȳ"),
-                                ("A_",u"Ā"),("E_",u"Ē"),("I_",u"Ī"),("O_",u"Ō"),("U_",u"Ū"),("Y_",u"Ȳ")]:
-        txt = txt.replace(source,replacement)
-    return txt
-
-endingsfile = codecs.open("macronized-endings.txt","w","utf8")
-for tag in tagtoaccents:
-    endingfreqs = {}
-    for accented in tagtoaccents[tag]:
-        for i in range(1,min(len(accented)-3, 12)):
-            ending = accented[-i:]
-            endingfreqs[ending] = endingfreqs.get(ending,0) + 1
-    endingsfile.write(tag)
-    relevantendings = []
-    for ending in endingfreqs:
-        endingwithoutmacrons = postags.removemacrons(ending)
-        if ending[0] != endingwithoutmacrons[0] and endingfreqs[ending] > endingfreqs.get(endingwithoutmacrons, 1):
-            relevantendings.append(ending)
-    relevantendings.sort(lambda x,y: cmp(len(y), len(x)))
-    for ending in relevantendings:
-        endingsfile.write('\t' + escapedaccents(ending))
-    endingsfile.write('\n')
+with codecs.open('macronized-endings.txt', 'w', 'utf8') as endings_file:
+    for tag in tag_to_accents:
+        ending_freqs = defaultdict(int)
+        for accented in tag_to_accents[tag]:
+            for i in range(1, min(len(accented)-3, 12)):
+                ending = accented[-i:]
+                ending_freqs[ending] += 1
+        endings_file.write(tag)
+        relevant_endings = []
+        for ending in ending_freqs:
+            ending_without_macrons = postags.removemacrons(ending)
+            if ending[0] != ending_without_macrons[0] and ending_freqs[ending] > ending_freqs.get(ending_without_macrons, 1):
+                relevant_endings.append(ending)
+        for ending in sorted(relevant_endings, key=len):
+            endings_file.write('\t' + postags.escape_macrons(ending))
+        endings_file.write('\n')
 
