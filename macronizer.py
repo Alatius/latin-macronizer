@@ -101,7 +101,7 @@ class Wordlist:
             self.dbcursor.execute("CREATE INDEX morpheus_wordform_index ON morpheus USING hash (wordform)")
             self.dbconn.commit()
         else:
-            raise Exception("Could not import psycopg2.")
+            raise Exception("Error: Could not import Python package psycopg2.")
     # enddef
 
     def loadwordsfromfile(self, filename, storeindb=False):
@@ -603,30 +603,29 @@ class Tokenization:
             return accented
         # enddef
 
-        def breakoutambiguous(accenteds):
-            """If a vowel is ambiguous (_^), generate different accented forms,
-            one where it is long, one when short."""
-            if accenteds == ['nescio_']:  # An ad hoc fix
-                accenteds = ['nescio_^']
-            elif accenteds == ['u_ni_us']:
-                accenteds = ['u_ni_^us']
-            elif accenteds == ['illi_us']:
-                accenteds = ['illi_^us']
-            elif accenteds == ['ipsi_us']:
-                accenteds = ['ipsi_^us']
-            elif accenteds == ['alteri_us']:
-                accenteds = ['alteri_^us']
-            newaccenteds = []
-            alts = ["", "_"]
+        def separate_ambiguous_vowels(accenteds):
+            """
+            If a vowel is ambiguous (_^), generate separate accented forms, one for each possible combination.
+            Input: ['ba_^ce_^]
+            Output: ['bace', 'ba_ce', 'bace_', 'ba_ce_']
+            """
+            accented_modifications = {'nescio_': 'nescio_^',
+                                      'u_ni_us': 'u_ni_^us',
+                                      'illi_us': 'illi_^us',
+                                      'ipsi_us': 'ipsi_^us',
+                                      'alteri_us': 'alteri_^us'}
+            new_accenteds = []
             for accented in accenteds:
-                parts = accented.split("_^")
-                for i in range(1 << len(parts)-1):
-                    newaccented = [parts[0]]
-                    for bitpos in range(len(parts)-1):
-                        newaccented.append(alts[i >> bitpos & 1])
-                        newaccented.append(parts[bitpos+1])
-                    newaccenteds.append("".join(newaccented))
-            return newaccenteds
+                accented = accented_modifications.get(accented, accented)
+                parts = accented.split('_^')
+                for variant in range(1 << len(parts) - 1):
+                    new_accented = []
+                    for bit_pos, part in enumerate(parts):
+                        new_accented.append(part)
+                        if 1 << bit_pos & variant:
+                            new_accented.append('_')
+                    new_accenteds.append(''.join(new_accented))
+            return new_accenteds
         # enddef
 
         def segmentaccented(accented):
@@ -669,7 +668,7 @@ class Tokenization:
             HIATUSPENALTY = 3
             isfirstaccented = True
             scans = []
-            for accented in breakoutambiguous(accentedcandidates):
+            for accented in separate_ambiguous_vowels(accentedcandidates):
                 segments = segmentaccented(accented)
                 segments.append(followingsegment)
                 basepenalty = 0 if isfirstaccented else REPRIORITIZEPENALTY
