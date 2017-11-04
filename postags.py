@@ -402,7 +402,10 @@ def escape_macrons(txt):
 
 
 def removemacrons(txt):
-    return escape_macrons(txt).replace('_', '')
+    for source, replacement in [(u"ā", "a"), (u"ē", "e"), (u"ī", "i"), (u"ō", "o"), (u"ū", "u"), (u"ȳ", u"y"),
+                                (u"Ā", "A"), (u"Ē", "E"), (u"Ī", "I"), (u"Ō", "O"), (u"Ū", "U"), (u"Ȳ", u"Y")]:
+        txt = txt.replace(source, replacement)
+    return txt
 
 
 def filter_accents(accented):

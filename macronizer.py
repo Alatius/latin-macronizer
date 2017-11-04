@@ -508,8 +508,8 @@ class Tokenization:
                         best_lemma = corpus_lemma
             elif wordform.lower() in wordlist.formtolemmas:
                 for lex_lemma in wordlist.formtolemmas[wordform.lower()]:
-                    if lemma_frequency[lex_lemma] > max_freq:
-                        max_freq = lemma_frequency[lex_lemma]
+                    if lemma_frequency.get(lex_lemma, 0) > max_freq:
+                        max_freq = lemma_frequency.get(lex_lemma, 0)
                         best_lemma = lex_lemma
             # endif
             token.lemma = best_lemma
