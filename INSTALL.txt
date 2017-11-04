@@ -56,12 +56,12 @@ made other customizations, you will have to edit the main script
 macronizer.py and set the constants in the beginning to the correct
 values:
 
-  MORPHEUSDIR = 'morpheus/'
-  RFTAGGERDIR = '/usr/local/bin/'
-  DBNAME = 'macronizer'
-  DBUSER = 'theusername'
-  DBPASSWORD = 'thepassword'
-  DBHOST = 'localhost'
+  DB_NAME = 'macronizer'
+  DB_USER = 'theusername'
+  DB_PASSWORD = 'thepassword'
+  DB_HOST = 'localhost'
+  RFTAGGER_DIR = '/usr/local/bin'
+  MORPHEUS_DIR = os.path.join(os.path.dirname(__file__), 'morpheus')
 
 Finally, initialize the macronizer (populating the database):
 
@@ -90,7 +90,7 @@ good idea to move it to /opt/ or /usr/local/. I will choose the later:
 Edit the front-end script macronize.py and update the constant to
 point to the right directory:
 
-  MACRONIZERLIB = '/usr/local/latin-macronizer/'
+  MACRONIZER_LIB = '/usr/local/latin-macronizer/'
 
 Then add a symlink in /usr/local/bin/:
 

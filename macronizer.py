@@ -43,12 +43,13 @@ else:
     # Python 3 doesn't use sys.setdefaultencoding()
 
 
-MORPHEUSDIR = 'morpheus/'
-RFTAGGERDIR = '/usr/local/bin/'
-DBNAME = 'macronizer'
-DBUSER = 'theusername'
-DBPASSWORD = 'thepassword'
-DBHOST = 'localhost'
+DB_NAME = 'macronizer'
+DB_USER = 'theusername'
+DB_PASSWORD = 'thepassword'
+DB_HOST = 'localhost'
+RFTAGGER_DIR = '/usr/local/bin'
+MORPHEUS_DIR = os.path.join(os.path.dirname(__file__), 'morpheus')
+MACRONS_FILE = os.path.join(os.path.dirname(__file__), 'macrons.txt')
 
 
 def pairwise(iterable):
@@ -83,12 +84,12 @@ class Wordlist:
         if psycopg2:
             try:
                 self.dbconn = psycopg2.connect(
-                    "dbname='%s' host='%s' user='%s' password='%s'" % (DBNAME, DBHOST, DBUSER, DBPASSWORD))
+                    "dbname='%s' host='%s' user='%s' password='%s'" % (DB_NAME, DB_HOST, DB_USER, DB_PASSWORD))
                 self.dbcursor = self.dbconn.cursor()
             except Exception:
                 raise Exception("Could not connect to the PostgreSQL database.")
         else:
-            self.loadwordsfromfile("macrons.txt")
+            self.loadwordsfromfile(MACRONS_FILE)
     # enddef
 
     def reinitializedatabase(self):
@@ -96,7 +97,7 @@ class Wordlist:
             self.dbcursor.execute("DROP TABLE IF EXISTS morpheus")
             self.dbcursor.execute(
                 "CREATE TABLE morpheus(id SERIAL PRIMARY KEY, wordform TEXT NOT NULL, morphtag TEXT, lemma TEXT, accented TEXT)")
-            self.loadwordsfromfile("macrons.txt", storeindb=True)
+            self.loadwordsfromfile(MACRONS_FILE, storeindb=True)
             self.dbcursor.execute("ANALYZE")
             self.dbcursor.execute("CREATE INDEX morpheus_wordform_index ON morpheus USING hash (wordform)")
             self.dbconn.commit()
@@ -166,8 +167,8 @@ class Wordlist:
             for word in words:
                 morphinpfile.write(word.strip().lower() + '\n')
                 morphinpfile.write(word.strip().capitalize() + '\n')
-        morpheus_command = "MORPHLIB=%sstemlib %sbin/cruncher -L < %s > %s 2> /dev/null" % \
-                               (MORPHEUSDIR, MORPHEUSDIR, morphinpfname, crunchedfname)
+        morpheus_command = "MORPHLIB=%s/stemlib %s/bin/cruncher -L < %s > %s 2> /dev/null" % \
+                               (MORPHEUS_DIR, MORPHEUS_DIR, morphinpfname, crunchedfname)
         exitcode = os.system(morpheus_command)
         if exitcode != 0:
             raise Exception("Failed to execute: %s" % morpheus_command)
@@ -456,10 +457,11 @@ class Tokenization:
                         savedencliticbearer = None
                 if token.endssentence:
                     totaggerfile.write("\n")
-        rftcommand = RFTAGGERDIR + "rft-annotate -s -q rftagger-ldt.model %s %s" % (totaggerfname, fromtaggerfname)
-        exitcode = os.system(rftcommand)
+        rftagger_model = os.path.join(os.path.dirname(__file__), 'rftagger-ldt.model')
+        rft_command = "%s/rft-annotate -s -q %s %s %s" % (RFTAGGER_DIR, rftagger_model, totaggerfname, fromtaggerfname)
+        exitcode = os.system(rft_command)
         if exitcode != 0:
-            raise Exception("Failed to execute: %s" % rftcommand)
+            raise Exception("Failed to execute: %s" % rft_command)
         with codecs.open(fromtaggerfname, 'r', 'utf8') as fromtaggerfile:
             (taggedenclititoken, enclitictag) = (None, None)
             line = None

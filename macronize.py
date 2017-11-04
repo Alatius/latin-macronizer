@@ -16,14 +16,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-MACRONIZERLIB = '.'
+MACRONIZER_LIB = '.'
 
 import cgi
 import os
 import sys
 import codecs
-sys.path.append(MACRONIZERLIB)
-os.chdir(MACRONIZERLIB)
+sys.path.append(MACRONIZER_LIB)
 from macronizer import Macronizer, evaluate
 import unicodedata
 import argparse
