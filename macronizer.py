@@ -166,8 +166,11 @@ class Wordlist:
             for word in words:
                 morphinpfile.write(word.strip().lower() + '\n')
                 morphinpfile.write(word.strip().capitalize() + '\n')
-        os.system("MORPHLIB=%sstemlib %sbin/cruncher -L < %s > %s 2> /dev/null" %
-                  (MORPHEUSDIR, MORPHEUSDIR, morphinpfname, crunchedfname))
+        morpheus_command = "MORPHLIB=%sstemlib %sbin/cruncher -L < %s > %s 2> /dev/null" % \
+                               (MORPHEUSDIR, MORPHEUSDIR, morphinpfname, crunchedfname)
+        exitcode = os.system(morpheus_command)
+        if exitcode != 0:
+            raise Exception("Failed to execute: %s" % morpheus_command)
         os.remove(morphinpfname)
         with codecs.open(crunchedfname, 'r', 'utf8') as crunchedfile:
             morpheus = crunchedfile.read()
@@ -493,32 +496,23 @@ class Tokenization:
     # enddef
 
     def addlemmas(self, wordlist):
-        lemmafrequency = defaultdict(int)
-        wordlemmafreq = defaultdict(int)
-        wordformtolemmasincorpus = defaultdict(set)
-        with codecs.open('ldt-corpus.txt', 'r', 'utf8') as corpus:
-            for line in corpus:
-                if '\t' in line:
-                    [wordform, _, lemma] = line.strip().split('\t')
-                    lemmafrequency[lemma] += 1
-                    wordlemmafreq[(wordform, lemma)] += 1
-                    wordformtolemmasincorpus[wordform].add(lemma)
+        from lemmas import lemma_frequency, word_lemma_freq, wordform_to_corpus_lemmas
         for token in self.tokens:
             wordform = toascii(token.text)
-            bestlemma = "-"
-            maxfreq = -1
-            if wordform in wordformtolemmasincorpus:
-                for trainlemma in wordformtolemmasincorpus[wordform]:
-                    if wordlemmafreq[(wordform, trainlemma)] > maxfreq:
-                        maxfreq = wordlemmafreq[(wordform, trainlemma)]
-                        bestlemma = trainlemma
+            best_lemma = "-"
+            max_freq = -1
+            if wordform in wordform_to_corpus_lemmas:
+                for corpus_lemma in wordform_to_corpus_lemmas[wordform]:
+                    if word_lemma_freq[(wordform, corpus_lemma)] > max_freq:
+                        max_freq = word_lemma_freq[(wordform, corpus_lemma)]
+                        best_lemma = corpus_lemma
             elif wordform.lower() in wordlist.formtolemmas:
-                for lexlemma in wordlist.formtolemmas[wordform.lower()]:
-                    if lemmafrequency[lexlemma] > maxfreq:
-                        maxfreq = lemmafrequency[lexlemma]
-                        bestlemma = lexlemma
+                for lex_lemma in wordlist.formtolemmas[wordform.lower()]:
+                    if lemma_frequency[lex_lemma] > max_freq:
+                        max_freq = lemma_frequency[lex_lemma]
+                        best_lemma = lex_lemma
             # endif
-            token.lemma = bestlemma
+            token.lemma = best_lemma
     # enddef
 
     def getaccents(self, wordlist):
@@ -540,14 +534,8 @@ class Tokenization:
             return previous_row[-1]
         # enddef
 
-        tagtoendings = defaultdict(list)
-        with codecs.open("macronized-endings.txt", "r", "utf8") as endingsfile:
-            for line in endingsfile:
-                line = line.strip().split("\t")
-                endingpairs = []
-                for ending in line[1:]:
-                    endingpairs.append((ending, ending.replace("_", "").replace("^", "")))
-                tagtoendings[line[0]] = endingpairs
+        from macronized_endings import tag_to_endings
+
         for token in self.tokens:
             if not token.isword:
                 continue
@@ -581,9 +569,10 @@ class Tokenization:
                 # To-do: Better support for different capitalization and orthography
                 token.accented = [token.text]
                 if any(i in token.text for i in u"aeiouyAEIOUY"):
-                    for (accentedending, plainending) in tagtoendings[tag]:
-                        if wordform.endswith(plainending):
-                            token.accented = [wordform[:-len(plainending)] + accentedending]
+                    for accented_ending in tag_to_endings[tag]:
+                        plain_ending = accented_ending.replace("_", "").replace("^", "")
+                        if wordform.endswith(plain_ending):
+                            token.accented = [wordform[:-len(plain_ending)] + accented_ending]
                             break
                     token.isunknown = True
     # enddef
