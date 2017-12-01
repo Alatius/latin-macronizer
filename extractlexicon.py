@@ -24,7 +24,7 @@ with codecs.open('macrons.txt', 'r', 'utf8') as macrons_file, \
 
 with codecs.open('macronized_endings.py', 'w', 'utf8') as endings_file:
     endings_file.write('tag_to_endings = {\n')
-    for tag in tag_to_accents:
+    for tag in sorted(tag_to_accents):
         ending_freqs = defaultdict(int)
         for accented in tag_to_accents[tag]:
             for i in range(1, min(len(accented)-3, 12)):
@@ -35,8 +35,8 @@ with codecs.open('macronized_endings.py', 'w', 'utf8') as endings_file:
             ending_without_macrons = postags.removemacrons(ending)
             if ending[0] != ending_without_macrons[0] and ending_freqs[ending] > ending_freqs.get(ending_without_macrons, 1):
                 relevant_endings.append(ending)
-        cleaned_list = [postags.escape_macrons(ending).encode('ascii') for ending in sorted(relevant_endings, key=len, reverse=True)]
-        endings_file.write("  '%s': %s,\n" % (tag.encode('ascii'), cleaned_list))
+        cleaned_list = [str(postags.escape_macrons(ending)) for ending in sorted(relevant_endings, key=lambda x: (-len(x), x))]
+        endings_file.write("  '%s': %s,\n" % (str(tag), cleaned_list))
     endings_file.write('}\n')
 
 
