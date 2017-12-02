@@ -812,29 +812,12 @@ class Tokenization:
     # enddef
 
     def detokenize(self, markambiguous):
-        def enspancharacters(text):
-            result = []
-            for char in text:
-                if char in u"āēīōūȳĀĒĪŌŪȲaeiouyAEIOUY":
-                    result.append('<span>%s</span>' % char)
-                else:
-                    result.append(char)
-            return "".join(result)
-        # enddef
-
         result = []
         for token in self.tokens:
-            if token.isenclitic:
-                result.append(token.macronized)
-            elif not token.isword:
-                if markambiguous:
-                    result.append(escape(token.macronized))
-                else:
-                    result.append(token.macronized)
-            else:
+            if token.isword:
                 unicodetext = postags.unicodeaccents(token.macronized)
                 if markambiguous:
-                    unicodetext = enspancharacters(unicodetext)
+                    unicodetext = re.sub(ur"([āēīōūȳĀĒĪŌŪȲaeiouyAEIOUY])", "<span>\\1</span>", unicodetext)
                     if token.isunknown:
                         unicodetext = '<span class="unknown">%s</span>' % unicodetext
                     elif len(set([x.replace("^", "") for x in token.accented])) > 1:
@@ -842,6 +825,11 @@ class Tokenization:
                     else:
                         unicodetext = '<span class="auto">%s</span>' % unicodetext
                 result.append(unicodetext)
+            else:
+                if markambiguous:
+                    result.append(escape(token.macronized))
+                else:
+                    result.append(token.macronized)
         return "".join(result)
     # enddef
 # endclass
