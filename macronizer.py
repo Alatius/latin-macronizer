@@ -571,7 +571,7 @@ class Tokenization:
                 # To-do: Better support for different capitalization and orthography
                 token.accented = [token.text]
                 if any(i in token.text for i in u"aeiouyAEIOUY"):
-                    for accented_ending in tag_to_endings[tag]:
+                    for accented_ending in tag_to_endings.get(tag, []):
                         plain_ending = accented_ending.replace("_", "").replace("^", "")
                         if wordform.endswith(plain_ending):
                             token.accented = [wordform[:-len(plain_ending)] + accented_ending]
