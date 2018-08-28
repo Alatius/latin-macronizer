@@ -16,6 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import unicode_literals
+
 import re
 
 featMap = {}
@@ -386,24 +388,24 @@ def parse_to_ldt(parse):
 
 
 def unicodeaccents(txt):
-    for source, replacement in [("a_", u"ā"), ("e_", u"ē"), ("i_", u"ī"), ("o_", u"ō"), ("u_", u"ū"), ("y_", u"ȳ"),
-                                ("A_", u"Ā"), ("E_", u"Ē"), ("I_", u"Ī"), ("O_", u"Ō"), ("U_", u"Ū"), ("Y_", u"Ȳ"),
-                                (u"ä_", u"ā"), (u"ë_", u"ē"), (u"ï_", u"ī"), (u"ö_", u"ō"), (u"ü_", u"ū"), (u"ÿ_", u"ȳ"),
-                                (u"æ_", u"æ"), (u"œ_", u"œ"), (u"Æ_", u"Æ"), (u"Œ_", u"Œ")]:
+    for source, replacement in [("a_", "ā"), ("e_", "ē"), ("i_", "ī"), ("o_", "ō"), ("u_", "ū"), ("y_", "ȳ"),
+                                ("A_", "Ā"), ("E_", "Ē"), ("I_", "Ī"), ("O_", "Ō"), ("U_", "Ū"), ("Y_", "Ȳ"),
+                                ("ä_", "ā"), ("ë_", "ē"), ("ï_", "ī"), ("ö_", "ō"), ("ü_", "ū"), ("ÿ_", "ȳ"),
+                                ("æ_", "æ"), ("œ_", "œ"), ("Æ_", "Æ"), ("Œ_", "Œ")]:
         txt = txt.replace(source, replacement)
     return txt
 
 
 def escape_macrons(txt):
-    for source, replacement in [(u"ā", "a_"), (u"ē", "e_"), (u"ī", "i_"), (u"ō", "o_"), (u"ū", "u_"), (u"ȳ", u"y_"),
-                                (u"Ā", "A_"), (u"Ē", "E_"), (u"Ī", "I_"), (u"Ō", "O_"), (u"Ū", "U_"), (u"Ȳ", u"Y_")]:
+    for source, replacement in [("ā", "a_"), ("ē", "e_"), ("ī", "i_"), ("ō", "o_"), ("ū", "u_"), ("ȳ", "y_"),
+                                ("Ā", "A_"), ("Ē", "E_"), ("Ī", "I_"), ("Ō", "O_"), ("Ū", "U_"), ("Ȳ", "Y_")]:
         txt = txt.replace(source, replacement)
     return txt
 
 
 def removemacrons(txt):
-    for source, replacement in [(u"ā", "a"), (u"ē", "e"), (u"ī", "i"), (u"ō", "o"), (u"ū", "u"), (u"ȳ", u"y"),
-                                (u"Ā", "A"), (u"Ē", "E"), (u"Ī", "I"), (u"Ō", "O"), (u"Ū", "U"), (u"Ȳ", u"Y")]:
+    for source, replacement in [("ā", "a"), ("ē", "e"), ("ī", "i"), ("ō", "o"), ("ū", "u"), ("ȳ", "y"),
+                                ("Ā", "A"), ("Ē", "E"), ("Ī", "I"), ("Ō", "O"), ("Ū", "U"), ("Ȳ", "Y")]:
         txt = txt.replace(source, replacement)
     return txt
 
@@ -411,8 +413,8 @@ def removemacrons(txt):
 def filter_accents(accented):
     accented = accented.replace("^_", "_^")
     accented = re.sub("_\^([bcdfgpt][lr])", "^\\1", accented)
-    accented = re.sub(u"u_m$", "um", accented)
-    accented = re.sub(u"([AEIOUYaeiouy])n([sfx]|ct)", "\\1_n\\2", accented)
+    accented = re.sub("u_m$", "um", accented)
+    accented = re.sub("([AEIOUYaeiouy])n([sfx]|ct)", "\\1_n\\2", accented)
     return accented
 
 
