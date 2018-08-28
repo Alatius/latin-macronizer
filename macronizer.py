@@ -16,6 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import unicode_literals
+
 import codecs
 import os
 import re
@@ -59,14 +61,14 @@ def pairwise(iterable):
 
 
 def toascii(txt):
-    for source, replacement in [(u"æ", "ae"), (u"Æ", "Ae"), (u"œ", "oe"), (u"Œ", "Oe"),
-                                (u"ä", "a"), (u"ë", "e"), (u"ï", "i"), (u"ö", "o"), (u"ü", "u"), (u"ÿ", "u")]:
+    for source, replacement in [("æ", "ae"), ("Æ", "Ae"), ("œ", "oe"), ("Œ", "Oe"),
+                                ("ä", "a"), ("ë", "e"), ("ï", "i"), ("ö", "o"), ("ü", "u"), ("ÿ", "u")]:
         txt = txt.replace(source, replacement)
     return txt
 
 
 def touiorthography(txt):
-    for source, replacement in [(u"v", "u"), (u"U", "V"), (u"j", "i"), (u"J", u"I")]:
+    for source, replacement in [("v", "u"), ("U", "V"), ("j", "i"), ("J", "I")]:
         txt = txt.replace(source, replacement)
     return txt
 
@@ -352,7 +354,7 @@ class Tokenization:
         possiblesentenceend = False
         sentencehasended = True
         # This does not work?: [^\W\d_]+|\s+|([^\w\s]|[\d_])+
-        for chunk in re.findall(u"[^\W\d_]+|\s+|[^\w\s]+|[\d_]+", text, re.UNICODE):
+        for chunk in re.findall("[^\W\d_]+|\s+|[^\w\s]+|[\d_]+", text, re.UNICODE):
             token = Token(chunk)
             if token.isword:
                 if sentencehasended:
@@ -570,7 +572,7 @@ class Tokenization:
                 # Unknown word, but attempt to mark vowels in ending:
                 # To-do: Better support for different capitalization and orthography
                 token.accented = [token.text]
-                if any(i in token.text for i in u"aeiouyAEIOUY"):
+                if any(i in token.text for i in "aeiouyAEIOUY"):
                     for accented_ending in tag_to_endings.get(tag, []):
                         plain_ending = accented_ending.replace("_", "").replace("^", "")
                         if wordform.endswith(plain_ending):
@@ -817,7 +819,7 @@ class Tokenization:
             if token.isword:
                 unicodetext = postags.unicodeaccents(token.macronized)
                 if markambiguous:
-                    unicodetext = re.sub(ur"([āēīōūȳĀĒĪŌŪȲaeiouyAEIOUY])", "<span>\\1</span>", unicodetext)
+                    unicodetext = re.sub(r"([āēīōūȳĀĒĪŌŪȲaeiouyAEIOUY])", "<span>\\1</span>", unicodetext)
                     if token.isunknown:
                         unicodetext = '<span class="unknown">%s</span>' % unicodetext
                     elif len(set([x.replace("^", "") for x in token.accented])) > 1:

@@ -16,6 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
+from __future__ import unicode_literals
+
 MACRONIZER_LIB = '.'
 
 import cgi
@@ -100,7 +103,7 @@ if 'REQUEST_METHOD' in os.environ:  # If run as a CGI script
             macronizedtext = ""
     print('</textarea><br>')
     print('<input type="checkbox" name="macronize" onchange="toggleDisabled(this.checked)" value="on" %s> Mark long vowels.<br>' % ("checked" if domacronize else ""))
-    print(u'&nbsp;&nbsp;&nbsp;<input class="macronizersetting" type="checkbox" name="alsomaius" value="on" %s> Also mark <i>māius</i> etc.<br>' % ("checked" if alsomaius else ""))
+    print('&nbsp;&nbsp;&nbsp;<input class="macronizersetting" type="checkbox" name="alsomaius" value="on" %s> Also mark <i>māius</i> etc.<br>' % ("checked" if alsomaius else ""))
     print('&nbsp;&nbsp;&nbsp;To improve the result, try to scan the text as <select name="scan">')
     print('<option value="%s"%s>prose (no scansion)</option>' % (PROSE, " selected" if scan == PROSE else ""))
     print('<option value="%s"%s>dactylic hexameters</option>' % (HEXAMETER, " selected" if scan == HEXAMETER else ""))
@@ -108,7 +111,7 @@ if 'REQUEST_METHOD' in os.environ:  # If run as a CGI script
     print('<option value="%s"%s>hendecasyllables</option>' % (HENDECA, " selected" if scan == HENDECA else ""))
     print('<option value="%s"%s>iambic trimeter + dimeter</option>' % (IAMBTRIDI, " selected" if scan == IAMBTRIDI else ""))
     print('</select>.<br>')
-    print(u'&nbsp;&nbsp;&nbsp;<input class="macronizersetting" type="checkbox" name="doevaluate" value="off" %s> Compare result with correctly macronized input text.<br>' % ("checked" if doevaluate else ""))
+    print('&nbsp;&nbsp;&nbsp;<input class="macronizersetting" type="checkbox" name="doevaluate" value="off" %s> Compare result with correctly macronized input text.<br>' % ("checked" if doevaluate else ""))
     print('<input type="checkbox" name="utov" value="on" %s> Convert u to v.<br>' % ("checked" if performutov else ""))
     print('<input type="checkbox" name="itoj" value="on" %s> Convert i to j.<br>' % ("checked" if performitoj else ""))
     print('<input type="submit" value="Submit"> (Please be patient!)<br>')
@@ -299,7 +302,7 @@ else:  # Run as a free-standing Python script
 
     macronizer = Macronizer()
     if args.test:
-        texttomacronize = u"O orbis terrarum te saluto!\n"
+        texttomacronize = "O orbis terrarum te saluto!\n"
     else:
         if args.infile is None:
             if sys.version_info[0] < 3:
