@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright 2015-2017 Johan Winge
+# Copyright 2015-2019 Johan Winge
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,11 +29,13 @@ from macronizer import Macronizer, evaluate
 import unicodedata
 import argparse
 
-PROSE = 'prose'
-HEXAMETER = 'hexameter'
-ELEGIACS = 'elegiacs'
-HENDECA = 'hendeca'
-IAMBTRIDI = 'iambtridi'
+SCANSIONS = [
+    ["prose (no scansion)", []],
+    ["dactylic hexameters", [Macronizer.dactylichexameter]],
+    ["elegiac distichs", [Macronizer.dactylichexameter, Macronizer.dactylicpentameter]],
+    ["hendecasyllables", [Macronizer.hendecasyllable]],
+    ["iambic trimeter + dimeter", [Macronizer.iambictrimeter, Macronizer.iambicdimeter]]
+]
 TRUNCATETHRESHOLD = 20000
 
 if 'REQUEST_METHOD' in os.environ:  # If run as a CGI script
@@ -44,9 +46,10 @@ if 'REQUEST_METHOD' in os.environ:  # If run as a CGI script
     # texttomacronize = texttomacronize[:TRUNCATETHRESHOLD]
     domacronize = True if texttomacronize == "" or htmlform.getvalue('macronize') else False
     alsomaius = True if htmlform.getvalue('alsomaius') else False
-    scan = htmlform.getvalue('scan')
-    if not scan:
-        scan = PROSE
+    try:
+        scan = int(htmlform.getvalue('scan'))
+    except:
+        scan = 0
     performitoj = True if htmlform.getvalue('itoj') else False
     performutov = True if htmlform.getvalue('utov') else False
     doevaluate = True if htmlform.getvalue('doevaluate') else False
@@ -87,14 +90,8 @@ if 'REQUEST_METHOD' in os.environ:  # If run as a CGI script
         try:
             macronizer = Macronizer()
             macronizer.settext(texttomacronize)
-            if scan == HEXAMETER:
-                macronizer.scan([Macronizer.dactylichexameter])
-            elif scan == ELEGIACS:
-                macronizer.scan([Macronizer.dactylichexameter, Macronizer.dactylicpentameter])
-            elif scan == HENDECA:
-                macronizer.scan([Macronizer.hendecasyllable])
-            elif scan == IAMBTRIDI:
-                macronizer.scan([Macronizer.iambictrimeter, Macronizer.iambicdimeter])
+            if scan > 0:
+                macronizer.scan(SCANSIONS[scan][1])
             macronizedtext = macronizer.gettext(domacronize, alsomaius, performutov, performitoj, markambigs=False)
             # sys.stdout.write(macronizedtext)
         except Exception as inst:
@@ -104,11 +101,8 @@ if 'REQUEST_METHOD' in os.environ:  # If run as a CGI script
     print('<input type="checkbox" name="macronize" onchange="toggleDisabled(this.checked)" value="on" %s> Mark long vowels.<br>' % ("checked" if domacronize else ""))
     print('&nbsp;&nbsp;&nbsp;<input class="macronizersetting" type="checkbox" name="alsomaius" value="on" %s> Also mark <i>māius</i> etc.<br>' % ("checked" if alsomaius else ""))
     print('&nbsp;&nbsp;&nbsp;To improve the result, try to scan the text as <select name="scan">')
-    print('<option value="%s"%s>prose (no scansion)</option>' % (PROSE, " selected" if scan == PROSE else ""))
-    print('<option value="%s"%s>dactylic hexameters</option>' % (HEXAMETER, " selected" if scan == HEXAMETER else ""))
-    print('<option value="%s"%s>elegiac distichs</option>' % (ELEGIACS, " selected" if scan == ELEGIACS else ""))
-    print('<option value="%s"%s>hendecasyllables</option>' % (HENDECA, " selected" if scan == HENDECA else ""))
-    print('<option value="%s"%s>iambic trimeter + dimeter</option>' % (IAMBTRIDI, " selected" if scan == IAMBTRIDI else ""))
+    for i, [description, _] in enumerate(SCANSIONS):
+        print('<option value="%i"%s>%s</option>' % (i, " selected" if scan == i else "", description))
     print('</select>.<br>')
     print('&nbsp;&nbsp;&nbsp;<input class="macronizersetting" type="checkbox" name="doevaluate" value="off" %s> Compare result with correctly macronized input text.<br>' % ("checked" if doevaluate else ""))
     print('<input type="checkbox" name="utov" value="on" %s> Convert u to v.<br>' % ("checked" if performutov else ""))
@@ -119,7 +113,7 @@ if 'REQUEST_METHOD' in os.environ:  # If run as a CGI script
     if macronizedtext != "":
         print('<h2>Result</h2>')
         print('<p>(Ambiguous forms are marked <span class="ambig">yellow</span>; unknown forms are <span class="unknown">orange</span>. You may click on a vowel to add or remove a macron.)</p>')
-        if scan != PROSE:
+        if scan > 0:
             print('<div class="feet">' + "<br>".join(macronizer.tokenization.scannedfeet) + '</div>')
         print('<div class="prewrap" id="selectme" contenteditable="true">' + macronizer.tokenization.detokenize(True) + '</div>')
         print('<p><input id="selecttext" type="button" value="Copy text"></p>')
@@ -282,6 +276,8 @@ else:  # Run as a free-standing Python script
     parser.add_argument("-o", "--outfile", help="file to write to; otherwise stdout")
     parser.add_argument("-v", "--utov", action="store_true", help="convert u to v where appropriate")
     parser.add_argument("-j", "--itoj", action="store_true", help="similarly convert i to j")
+    parser.add_argument("-s", "--scan", help="try to scan using metre SCAN")
+    parser.add_argument("--listscans", action="store_true", help="list available metres")
     macrons_group = parser.add_mutually_exclusive_group()
     macrons_group.add_argument("--nomacrons", action="store_true", help="don't mark long vowels")
     macrons_group.add_argument("--maius", action="store_true", help="do mark vowels also in māius and such")
@@ -299,6 +295,11 @@ else:  # Run as a free-standing Python script
             exit(1)
         exit(0)
 
+    if args.listscans:
+        for i, [description, _] in enumerate(SCANSIONS):
+            print('%i: %s' % (i, description))
+        exit(0)
+
     macronizer = Macronizer()
     if args.test:
         texttomacronize = "O orbis terrarum te saluto!\n"
@@ -314,6 +315,12 @@ else:  # Run as a free-standing Python script
     # endif
     texttomacronize = unicodedata.normalize('NFC', texttomacronize)
     macronizer.settext(texttomacronize)
+    try:
+        scan = int(args.scan)
+    except:
+        scan = 0
+    if scan > 0:
+        macronizer.scan(SCANSIONS[scan][1])
     macronizedtext = macronizer.gettext(not args.nomacrons, args.maius, args.utov, args.itoj, markambigs=False)
     if args.evaluate:
         (accuracy, _) = evaluate(texttomacronize, macronizedtext)
