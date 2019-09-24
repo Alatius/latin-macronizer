@@ -413,7 +413,7 @@ def filter_accents(accented):
     accented = accented.replace("^_", "_^")
     accented = re.sub("_\^([bcdfgpt][lr])", "^\\1", accented)
     accented = re.sub("u_m$", "um", accented)
-    accented = re.sub("([AEIOUYaeiouy])n([sfx]|ct)", "\\1_n\\2", accented)
+    accented = re.sub("([AEIOUYaeiouy])\^?n([sfx]|ct)", "\\1_n\\2", accented)
     return accented
 
 
@@ -428,7 +428,10 @@ def morpheus_to_parses(wordform, nl):
     lemma = None
     if accented.count(",") == 0:
         lemma = accented
-        accented = wordform
+        if accented[0] == accented[0].upper():
+            accented = wordform.capitalize()
+        else:
+            accented = wordform
     elif accented.count(",") == 1:
         lemma = accented.split(",")[1]
         accented = accented.split(",")[0]
