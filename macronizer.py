@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright 2015-2017 Johan Winge
+# Copyright 2015-2021 Johan Winge
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ from collections import defaultdict
 import postags
 
 try:
+    psycopg2 = None
     import psycopg2
 except ImportError:
     warnings.warn("Could not import psycopg2. Performance will be slower and worse.", ImportWarning)

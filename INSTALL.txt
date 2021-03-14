@@ -7,7 +7,14 @@ called "latin-macronizer".
 
 Install prerequisite packages:
 
-  sudo apt-get install build-essential flex python-psycopg2
+  sudo apt install build-essential libfl-dev python3-psycopg2 unzip
+
+It is here assumed that you invoke Python with the command "python"
+but your system may lack such a command, without the version number.
+Try it now! If you get the error message "Command 'python' not found",
+you probably want to also install
+
+  sudo apt install python-is-python3
 
 Download the specially adapted version of Morpheus, and compile it:
 
@@ -30,7 +37,8 @@ And the patched version of the Latin Dependency Treebank:
 
 Now download and compile RFTagger:
 
-  wget -qO- http://www.cis.uni-muenchen.de/~schmid/tools/RFTagger/data/RFTagger.tar.gz | tar xvz
+  wget https://www.cis.uni-muenchen.de/~schmid/tools/RFTagger/data/RFTagger.zip
+  unzip RFTagger.zip
   cd RFTagger/src
   make
   sudo make install
@@ -110,9 +118,7 @@ is just a quick and dirty guide to get something working. Adapt to your
 own needs!
 
   sudo apt-get install apache2
-
   sudo a2enmod cgi
-
   sudo nano /etc/apache2/apache2.conf
 
 Edit the following part to look like this:
@@ -126,7 +132,7 @@ Edit the following part to look like this:
 
 Then save the configuration, and restart:
 
-  sudo service apache2 restart
+  sudo systemctl restart apache2
 
 Make a link to the script, and make it executable:
 
