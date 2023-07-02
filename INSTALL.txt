@@ -48,26 +48,11 @@ Convert the corpus and train RFTagger:
 
   ./train-rftagger.sh
 
-The macronizer script stores the Morpheus analyses in a PostgreSQL
-database. So you will have to install a database server and create a
-database. The following works for me; your mileage may vary. Change
-theusername and thepassword to whatever you want.
+If RFTagger is installed somewhere else than /usr/local/bin,
+or if you have done other customizations, you will have to
+edit the main script macronizer.py and set the constants in
+the beginning to the correct values:
 
-  sudo apt-get install postgresql
-  sudo -u postgres psql
-  postgres=# create user theusername password 'thepassword';
-  postgres=# create database macronizer encoding 'UTF8' owner theusername;
-  postgres=# \q
-
-If you selected your own PostgreSQL username and password, or have
-made other customizations, you will have to edit the main script
-macronizer.py and set the constants in the beginning to the correct
-values:
-
-  DB_NAME = 'macronizer'
-  DB_USER = 'theusername'
-  DB_PASSWORD = 'thepassword'
-  DB_HOST = 'localhost'
   RFTAGGER_DIR = '/usr/local/bin'
   MORPHEUS_DIR = os.path.join(os.path.dirname(__file__), 'morpheus')
 

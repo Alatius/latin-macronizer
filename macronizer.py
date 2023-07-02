@@ -24,15 +24,9 @@ import sys
 from tempfile import mkstemp
 import warnings
 from collections import defaultdict
+import sqlite3
 
 import postags
-
-try:
-    psycopg2 = None
-    import psycopg2
-except ImportError:
-    warnings.warn("Could not import psycopg2. Performance will be slower and worse.", ImportWarning)
-    psycopg2 = None
 
 if sys.version_info[0] < 3:
     from cgi import escape
@@ -44,11 +38,8 @@ else:
     # zip() is a builtin in Python 3.x
     # Python 3 doesn't use sys.setdefaultencoding()
 
-
-DB_NAME = 'macronizer'
-DB_USER = 'theusername'
-DB_PASSWORD = 'thepassword'
-DB_HOST = 'localhost'
+USE_DB = True
+DB_NAME = 'macronizer.db'
 RFTAGGER_DIR = '/usr/local/bin'
 MORPHEUS_DIR = os.path.join(os.path.dirname(__file__), 'morpheus')
 MACRONS_FILE = os.path.join(os.path.dirname(__file__), 'macrons.txt')
@@ -83,28 +74,28 @@ class Wordlist:
         self.formtolemmas = defaultdict(list)
         self.formtoaccenteds = defaultdict(list)
         self.formtotaglemmaaccents = defaultdict(list)
-        if psycopg2:
-            try:
-                self.dbconn = psycopg2.connect(
-                    "dbname='%s' host='%s' user='%s' password='%s'" % (DB_NAME, DB_HOST, DB_USER, DB_PASSWORD))
-                self.dbcursor = self.dbconn.cursor()
-            except Exception:
-                raise Exception("Could not connect to the PostgreSQL database.")
+        if USE_DB:
+            self.dbconn = sqlite3.connect(DB_NAME)
+            self.dbcursor = self.dbconn.cursor()
         else:
             self.loadwordsfromfile(MACRONS_FILE)
     # enddef
 
     def reinitializedatabase(self):
-        if psycopg2:
-            self.dbcursor.execute("DROP TABLE IF EXISTS morpheus")
-            self.dbcursor.execute(
-                "CREATE TABLE morpheus(id SERIAL PRIMARY KEY, wordform TEXT NOT NULL, morphtag TEXT, lemma TEXT, accented TEXT)")
-            self.loadwordsfromfile(MACRONS_FILE, storeindb=True)
-            self.dbcursor.execute("ANALYZE")
-            self.dbcursor.execute("CREATE INDEX morpheus_wordform_index ON morpheus USING hash (wordform)")
-            self.dbconn.commit()
-        else:
-            raise Exception("Error: Could not import Python package psycopg2.")
+        self.dbcursor.execute("DROP TABLE IF EXISTS morpheus")
+        self.dbcursor.execute('''
+            CREATE TABLE morpheus(
+                id INTEGER PRIMARY KEY, 
+                wordform TEXT NOT NULL, 
+                morphtag TEXT, 
+                lemma TEXT, 
+                accented TEXT, 
+                UNIQUE(wordform, morphtag, lemma, accented)
+            )
+        ''')
+        self.loadwordsfromfile(MACRONS_FILE, storeindb=True)
+        self.dbcursor.execute("CREATE INDEX morpheus_wordform_index ON morpheus (wordform)")
+        self.dbconn.commit()
     # enddef
 
     def loadwordsfromfile(self, filename, storeindb=False):
@@ -114,9 +105,9 @@ class Wordlist:
                     continue
                 [wordform, morphtag, lemma, accented] = line.split()
                 self.addwordparse(wordform, morphtag, lemma, accented)
-                if psycopg2 and storeindb:
+                if USE_DB and storeindb:
                     self.dbcursor.execute(
-                        "INSERT INTO morpheus (wordform, morphtag, lemma, accented) VALUES (%s,%s,%s,%s)",
+                        "INSERT OR IGNORE INTO morpheus (wordform, morphtag, lemma, accented) VALUES (?, ?, ?, ?)",
                         (wordform, morphtag, lemma, accented))
     # enddef
 
@@ -135,10 +126,10 @@ class Wordlist:
     # enddef
 
     def loadwordfromdb(self, word):
-        if psycopg2:
+        if USE_DB:
             try:
                 self.dbcursor.execute(
-                    "SELECT wordform, morphtag, lemma, accented FROM morpheus WHERE wordform = %s", (word,))
+                    "SELECT wordform, morphtag, lemma, accented FROM morpheus WHERE wordform = ?", (word,))
             except Exception:
                 raise Exception("Database table is missing. Please reset the database using --initialize.")
             rows = self.dbcursor.fetchall()
@@ -210,18 +201,12 @@ class Wordlist:
                 bestaccented = sorted(accenteds, key=lambda x: x.count('v') + x.count('j') + x.count('J'))[-1]
                 lemmatagtoaccenteds[(lemma, tag)] = bestaccented
             for (lemma, tag), accented in lemmatagtoaccenteds.items():
-                self.dbcursor.execute("INSERT INTO morpheus (wordform, morphtag, lemma, accented) VALUES (%s,%s,%s,%s)",
+                self.dbcursor.execute("INSERT OR IGNORE INTO morpheus (wordform, morphtag, lemma, accented) VALUES (?, ?, ?, ?)",
                                       (wordform, tag, lemma, accented))
         # The remaining were unknown to Morpheus:
         for wordform in words - knownwords:
-            self.dbcursor.execute("INSERT INTO morpheus (wordform) VALUES (%s)", (wordform,))
-        # Remove duplicates:
-        self.dbcursor.execute(
-            "DELETE FROM morpheus USING morpheus m2 WHERE morpheus.wordform = m2.wordform AND "
-            "(morpheus.morphtag = m2.morphtag OR morpheus.morphtag IS NULL AND m2.morphtag IS NULL) AND "
-            "(morpheus.lemma = m2.lemma OR morpheus.lemma IS NULL AND m2.lemma IS NULL) AND "
-            "(morpheus.accented = m2.accented OR morpheus.accented IS NULL AND m2.accented IS NULL) AND "
-            "morpheus.id > m2.id")
+            self.dbcursor.execute("INSERT OR IGNORE INTO morpheus (wordform) VALUES (?)", (wordform,))
+
         self.dbconn.commit()
     # enddef
 # endclass
