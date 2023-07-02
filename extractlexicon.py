@@ -1,9 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
 import postags
-import codecs
 from collections import defaultdict
 import xml.etree.ElementTree as ET
 import pprint
@@ -11,8 +9,8 @@ import pprint
 pp = pprint.PrettyPrinter()
 
 tag_to_accents = defaultdict(list)
-with codecs.open('macrons.txt', 'r', 'utf8') as macrons_file, \
-     codecs.open('rftagger-lexicon.txt', 'w', 'utf8') as lexicon_file:
+with open('macrons.txt', 'r', encoding='utf-8') as macrons_file, \
+     open('rftagger-lexicon.txt', 'w', encoding='utf-8') as lexicon_file:
     for line in macrons_file:
         [wordform, tag, lemma, accented] = line.split()
         accented = accented.replace('_^', '').replace('^', '')
@@ -23,7 +21,7 @@ with codecs.open('macrons.txt', 'r', 'utf8') as macrons_file, \
         lexicon_file.write("%s\t%s\t%s\n" % (wordform, tag, lemma))
 
 
-with codecs.open('macronized_endings.py', 'w', 'utf8') as endings_file:
+with open('macronized_endings.py', 'w', encoding='utf-8') as endings_file:
     endings_file.write('tag_to_endings = {\n')
     for tag in sorted(tag_to_accents):
         ending_freqs = defaultdict(int)
@@ -41,7 +39,7 @@ with codecs.open('macronized_endings.py', 'w', 'utf8') as endings_file:
     endings_file.write('}\n')
 
 
-with codecs.open('ldt-corpus.txt', 'w', 'utf8') as pos_corpus_file:
+with open('ldt-corpus.txt', 'w', encoding='utf-8') as pos_corpus_file:
     xsegment = ''
     xsegmentbehind = ''
     for f in ['1999.02.0010',
@@ -76,7 +74,7 @@ with codecs.open('ldt-corpus.txt', 'w', 'utf8') as pos_corpus_file:
                     xsegmentbehind = ''
             pos_corpus_file.write('.\tu.-.-.-.-.-.-.-.-\tPERIOD1\n')
             pos_corpus_file.write('\n')
-    with codecs.open('corpus-supplement.txt', 'r', 'utf8') as supplement:
+    with open('corpus-supplement.txt', 'r', encoding='utf-8') as supplement:
         for line in supplement:
             pos_corpus_file.write(line)
 
@@ -84,7 +82,7 @@ with codecs.open('ldt-corpus.txt', 'w', 'utf8') as pos_corpus_file:
 lemma_frequency = defaultdict(int)
 word_lemma_freq = defaultdict(int)
 wordform_to_corpus_lemmas = defaultdict(list)
-with codecs.open('ldt-corpus.txt', 'r', 'utf8') as pos_corpus_file:
+with open('ldt-corpus.txt', 'r', encoding='utf-8') as pos_corpus_file:
     for line in pos_corpus_file:
         if '\t' in line:
             [wordform, _, lemma] = line.strip().split('\t')
@@ -94,7 +92,7 @@ with codecs.open('ldt-corpus.txt', 'r', 'utf8') as pos_corpus_file:
             word_lemma_freq[(wordform, lemma)] += 1
             if lemma not in wordform_to_corpus_lemmas[wordform]:
                 wordform_to_corpus_lemmas[wordform].append(lemma)
-with codecs.open('lemmas.py', 'w', 'utf8') as lemma_file:
+with open('lemmas.py', 'w', encoding='utf-8') as lemma_file:
     lemma_file.write('lemma_frequency = %s\n' % pp.pformat(dict(lemma_frequency)))
     lemma_file.write('word_lemma_freq = %s\n' % pp.pformat(dict(word_lemma_freq)))
     lemma_file.write('wordform_to_corpus_lemmas = %s\n' % pp.pformat(dict(wordform_to_corpus_lemmas)))

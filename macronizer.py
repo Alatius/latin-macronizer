@@ -16,27 +16,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals
-import codecs
 import os
 import re
-import sys
 from tempfile import mkstemp
-import warnings
 from collections import defaultdict
 import sqlite3
+from html import escape
 
 import postags
-
-if sys.version_info[0] < 3:
-    from cgi import escape
-    from itertools import izip as zip
-    reload(sys)
-    sys.setdefaultencoding('utf8')
-else:
-    from html import escape
-    # zip() is a builtin in Python 3.x
-    # Python 3 doesn't use sys.setdefaultencoding()
 
 USE_DB = True
 DB_NAME = 'macronizer.db'
@@ -99,7 +86,7 @@ class Wordlist:
     # enddef
 
     def loadwordsfromfile(self, filename, storeindb=False):
-        with codecs.open(filename, 'r', 'utf8') as plaindbfile:
+        with open(filename, 'r', encoding='utf-8') as plaindbfile:
             for line in plaindbfile:
                 if line.startswith("#"):
                     continue
@@ -156,7 +143,7 @@ class Wordlist:
         os.close(morphinpfd)
         crunchedfd, crunchedfname = mkstemp()
         os.close(crunchedfd)
-        with codecs.open(morphinpfname, 'w', 'utf8') as morphinpfile:
+        with open(morphinpfname, 'w', encoding='utf-8') as morphinpfile:
             for word in words:
                 morphinpfile.write(word.strip().lower() + '\n')
                 morphinpfile.write(word.strip().capitalize() + '\n')
@@ -166,7 +153,7 @@ class Wordlist:
         if exitcode != 0:
             raise Exception("Failed to execute: %s" % morpheus_command)
         os.remove(morphinpfname)
-        with codecs.open(crunchedfname, 'r', 'utf8') as crunchedfile:
+        with open(crunchedfname, 'r', encoding='utf-8') as crunchedfile:
             morpheus = crunchedfile.read()
         os.remove(crunchedfname)
         crunchedwordforms = {}
@@ -428,7 +415,7 @@ class Tokenization:
         fromtaggerfd, fromtaggerfname = mkstemp()
         os.close(fromtaggerfd)
         savedencliticbearer = None
-        with codecs.open(totaggerfname, 'w', 'utf8') as totaggerfile:
+        with open(totaggerfname, 'w', encoding='utf-8') as totaggerfile:
             for token in self.tokens:
                 if not token.isspace:
                     tokentext = token.text
@@ -449,7 +436,7 @@ class Tokenization:
         exitcode = os.system(rft_command)
         if exitcode != 0:
             raise Exception("Failed to execute: %s" % rft_command)
-        with codecs.open(fromtaggerfname, 'r', 'utf8') as fromtaggerfile:
+        with open(fromtaggerfname, 'r', encoding='utf-8') as fromtaggerfile:
             (taggedenclititoken, enclitictag) = (None, None)
             line = None
             for token in self.tokens:
