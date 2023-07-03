@@ -23,16 +23,16 @@ import os
 import sys
 import codecs
 sys.path.append(MACRONIZER_LIB)
-from latin_macronizer import Macronizer, evaluate
+from latin_macronizer import Macronizer, evaluate, meters
 import unicodedata
 import argparse
 
 SCANSIONS = [
     ["prose (no scansion)", []],
-    ["dactylic hexameters", [Macronizer.dactylichexameter]],
-    ["elegiac distichs", [Macronizer.dactylichexameter, Macronizer.dactylicpentameter]],
-    ["hendecasyllables", [Macronizer.hendecasyllable]],
-    ["iambic trimeter + dimeter", [Macronizer.iambictrimeter, Macronizer.iambicdimeter]]
+    ["dactylic hexameters", [meters.dactylichexameter]],
+    ["elegiac distichs", [meters.dactylichexameter, meters.dactylicpentameter]],
+    ["hendecasyllables", [meters.hendecasyllable]],
+    ["iambic trimeter + dimeter", [meters.iambictrimeter, meters.iambicdimeter]]
 ]
 TRUNCATETHRESHOLD = 50000  # Set to -1 to disable
 DEBUGCOMMAND = "DEBUG\n"
