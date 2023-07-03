@@ -8,7 +8,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 Minimal example of usage:
 ```
 from latin_macronizer import Macronizer
-macronizer = Macronizer()
+macronizer = Macronizer(db_path="macronizer.db")
 macronizedtext = macronizer.macronize("Iam primum omnium satis constat Troia capta in ceteros saevitum esse Troianos")
 ```
 
@@ -28,7 +28,7 @@ If you want to transform the same text in different ways, you should use
 the separate gettext and settext functions, instead of macronize:
 ```
 from latin_macronizer import Macronizer
-macronizer = Macronizer()
+macronizer = Macronizer(db_path="macronizer.db")
 macronizer.settext("Iam primum omnium")
 print(macronizer.gettext())
 print(macronizer.gettext(domacronize=False, performitoj=True))

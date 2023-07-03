@@ -62,6 +62,10 @@ class Wordlist:
         if db_path:
             self.dbconn = sqlite3.connect(db_path)
             self.dbcursor = self.dbconn.cursor()
+            self.dbcursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='morpheus';")
+            if not self.dbcursor.fetchone():
+                print("Initializing database...")
+                self.reinitializedatabase()
         else:
             self.dbconn = None
             self.loadwordsfromfile(MACRONS_FILE)
