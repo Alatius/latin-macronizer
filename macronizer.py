@@ -26,7 +26,7 @@ from html import escape
 import postags
 
 USE_DB = True
-DB_NAME = 'macronizer.db'
+DB_NAME = os.path.join(os.path.dirname(__file__), 'macronizer.db')
 RFTAGGER_DIR = '/usr/local/bin'
 MORPHEUS_DIR = os.path.join(os.path.dirname(__file__), 'morpheus')
 MACRONS_FILE = os.path.join(os.path.dirname(__file__), 'macrons.txt')

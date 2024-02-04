@@ -1,0 +1,7 @@
+services:
+  macronizer:
+    image: latin-macronizer
+    build: .
+    ports:
+      - 8080:80
+    command: lighttpd -f /etc/lighttpd/lighttpd.conf -D

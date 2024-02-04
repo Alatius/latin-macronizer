@@ -1,0 +1,5 @@
+/morpheus/
+/treebank_data/
+
+.python-version
+__pycache__
