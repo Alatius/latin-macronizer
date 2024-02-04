@@ -35,8 +35,20 @@ NUMERAL = "numeral"
 INTERJECTION = "interj"
 EXCLAMATION = "exclam"
 PUNCTUATION = "punc"
-featMap[PART_OF_SPEECH] = [NOUN, VERB, ADJECTIVE, ADVERB, ADVERBIAL, CONJUNCTION,
-                           PREPOSITION, PRONOUN, NUMERAL, INTERJECTION, EXCLAMATION, PUNCTUATION]
+featMap[PART_OF_SPEECH] = [
+    NOUN,
+    VERB,
+    ADJECTIVE,
+    ADVERB,
+    ADVERBIAL,
+    CONJUNCTION,
+    PREPOSITION,
+    PRONOUN,
+    NUMERAL,
+    INTERJECTION,
+    EXCLAMATION,
+    PUNCTUATION,
+]
 
 PERSON = "person"
 FIRST_PERSON = "1st"
@@ -67,8 +79,16 @@ GERUNDIVE = "gerundive"
 SUPINE = "supine"
 GERUND = "gerund"
 PARTICIPLE = "part"
-featMap[MOOD] = [INDICATIVE, SUBJUNCTIVE, INFINITIVE, IMPERATIVE, GERUNDIVE,
-                 SUPINE, GERUND, PARTICIPLE]
+featMap[MOOD] = [
+    INDICATIVE,
+    SUBJUNCTIVE,
+    INFINITIVE,
+    IMPERATIVE,
+    GERUNDIVE,
+    SUPINE,
+    GERUND,
+    PARTICIPLE,
+]
 
 VOICE = "voice"
 ACTIVE = "act"
@@ -109,140 +129,140 @@ ACCENTEDFORM = "accentedform"
 def ldt_to_parse(ldt_tag):
     parse = {}
 
-    if ldt_tag[0] == '-':
+    if ldt_tag[0] == "-":
         pass
-    elif ldt_tag[0] == 'n':
+    elif ldt_tag[0] == "n":
         parse[PART_OF_SPEECH] = NOUN
-    elif ldt_tag[0] == 'v':
+    elif ldt_tag[0] == "v":
         parse[PART_OF_SPEECH] = VERB
-    elif ldt_tag[0] == 't':
+    elif ldt_tag[0] == "t":
         # parse[PART_OF_SPEECH] = PARTICIPLE
         parse[PART_OF_SPEECH] = VERB
         parse[MOOD] = PARTICIPLE
         print("Note: 'participle' used as POS")
-    elif ldt_tag[0] == 'a':
+    elif ldt_tag[0] == "a":
         parse[PART_OF_SPEECH] = ADJECTIVE
-    elif ldt_tag[0] == 'd':
+    elif ldt_tag[0] == "d":
         parse[PART_OF_SPEECH] = ADVERB
-    elif ldt_tag[0] == 'c':
+    elif ldt_tag[0] == "c":
         parse[PART_OF_SPEECH] = CONJUNCTION
-    elif ldt_tag[0] == 'r':
+    elif ldt_tag[0] == "r":
         parse[PART_OF_SPEECH] = PREPOSITION
-    elif ldt_tag[0] == 'p':
+    elif ldt_tag[0] == "p":
         parse[PART_OF_SPEECH] = PRONOUN
-    elif ldt_tag[0] == 'm':
+    elif ldt_tag[0] == "m":
         parse[PART_OF_SPEECH] = NUMERAL
-    elif ldt_tag[0] == 'i':
+    elif ldt_tag[0] == "i":
         parse[PART_OF_SPEECH] = INTERJECTION
-    elif ldt_tag[0] == 'e':
+    elif ldt_tag[0] == "e":
         parse[PART_OF_SPEECH] = EXCLAMATION
-    elif ldt_tag[0] == 'u':
+    elif ldt_tag[0] == "u":
         parse[PART_OF_SPEECH] = PUNCTUATION
     else:
         print("Warning: unknown part of speech:", ldt_tag[0])
 
-    if ldt_tag[1] == '-':
+    if ldt_tag[1] == "-":
         pass
-    elif ldt_tag[1] == '1':
+    elif ldt_tag[1] == "1":
         parse[PERSON] = FIRST_PERSON
-    elif ldt_tag[1] == '2':
+    elif ldt_tag[1] == "2":
         parse[PERSON] = SECOND_PERSON
-    elif ldt_tag[1] == '3':
+    elif ldt_tag[1] == "3":
         parse[PERSON] = THIRD_PERSON
     else:
         print("Warning: unknown person:", ldt_tag[1])
 
-    if ldt_tag[2] == '-':
+    if ldt_tag[2] == "-":
         pass
-    elif ldt_tag[2] == 's':
+    elif ldt_tag[2] == "s":
         parse[NUMBER] = SINGULAR
-    elif ldt_tag[2] == 'p':
+    elif ldt_tag[2] == "p":
         parse[NUMBER] = PLURAL
     else:
         print("Warning: unknown number:", ldt_tag[2])
 
-    if ldt_tag[3] == '-':
+    if ldt_tag[3] == "-":
         pass
-    elif ldt_tag[3] == 'p':
+    elif ldt_tag[3] == "p":
         parse[TENSE] = PRESENT
-    elif ldt_tag[3] == 'i':
+    elif ldt_tag[3] == "i":
         parse[TENSE] = IMPERFECT
-    elif ldt_tag[3] == 'r':
+    elif ldt_tag[3] == "r":
         parse[TENSE] = PERFECT
-    elif ldt_tag[3] == 'l':
+    elif ldt_tag[3] == "l":
         parse[TENSE] = PLUPERFECT
-    elif ldt_tag[3] == 't':
+    elif ldt_tag[3] == "t":
         parse[TENSE] = FUTURE_PERFECT
-    elif ldt_tag[3] == 'f':
+    elif ldt_tag[3] == "f":
         parse[TENSE] = FUTURE
     else:
         print("Warning: unknown tense:", ldt_tag[3])
 
-    if ldt_tag[4] == '-':
+    if ldt_tag[4] == "-":
         pass
-    elif ldt_tag[4] == 'i':
+    elif ldt_tag[4] == "i":
         parse[MOOD] = INDICATIVE
-    elif ldt_tag[4] == 's':
+    elif ldt_tag[4] == "s":
         parse[MOOD] = SUBJUNCTIVE
-    elif ldt_tag[4] == 'n':
+    elif ldt_tag[4] == "n":
         parse[MOOD] = INFINITIVE
-    elif ldt_tag[4] == 'm':
+    elif ldt_tag[4] == "m":
         parse[MOOD] = IMPERATIVE
-    elif ldt_tag[4] == 'p':
+    elif ldt_tag[4] == "p":
         parse[MOOD] = PARTICIPLE
-    elif ldt_tag[4] == 'd':
+    elif ldt_tag[4] == "d":
         parse[MOOD] = GERUND
-    elif ldt_tag[4] == 'g':
+    elif ldt_tag[4] == "g":
         parse[MOOD] = GERUNDIVE
-    elif ldt_tag[4] == 'u':
+    elif ldt_tag[4] == "u":
         parse[MOOD] = SUPINE
     else:
         print("Warning: unknown mood:", ldt_tag[4])
 
-    if ldt_tag[5] == '-':
+    if ldt_tag[5] == "-":
         pass
-    elif ldt_tag[5] == 'a':
+    elif ldt_tag[5] == "a":
         parse[VOICE] = ACTIVE
-    elif ldt_tag[5] == 'p':
+    elif ldt_tag[5] == "p":
         parse[VOICE] = PASSIVE
     else:
         print("Warning: unknown voice:", ldt_tag[5])
 
-    if ldt_tag[6] == '-':
+    if ldt_tag[6] == "-":
         pass
-    elif ldt_tag[6] == 'm':
+    elif ldt_tag[6] == "m":
         parse[GENDER] = MASCULINE
-    elif ldt_tag[6] == 'f':
+    elif ldt_tag[6] == "f":
         parse[GENDER] = FEMININE
-    elif ldt_tag[6] == 'n':
+    elif ldt_tag[6] == "n":
         parse[GENDER] = NEUTER
     else:
         print("Warning: unknown gender:", ldt_tag[6])
 
-    if ldt_tag[7] == '-':
+    if ldt_tag[7] == "-":
         pass
-    elif ldt_tag[7] == 'n':
+    elif ldt_tag[7] == "n":
         parse[CASE] = NOMINATIVE
-    elif ldt_tag[7] == 'g':
+    elif ldt_tag[7] == "g":
         parse[CASE] = GENITIVE
-    elif ldt_tag[7] == 'd':
+    elif ldt_tag[7] == "d":
         parse[CASE] = DATIVE
-    elif ldt_tag[7] == 'a':
+    elif ldt_tag[7] == "a":
         parse[CASE] = ACCUSATIVE
-    elif ldt_tag[7] == 'b':
+    elif ldt_tag[7] == "b":
         parse[CASE] = ABLATIVE
-    elif ldt_tag[7] == 'v':
+    elif ldt_tag[7] == "v":
         parse[CASE] = VOCATIVE
-    elif ldt_tag[7] == 'l':
+    elif ldt_tag[7] == "l":
         parse[CASE] = LOCATIVE
     else:
         print("Warning: unknown case:", ldt_tag[7])
 
-    if ldt_tag[8] == '-':
+    if ldt_tag[8] == "-":
         pass
-    elif ldt_tag[8] == 'c':
+    elif ldt_tag[8] == "c":
         parse[DEGREE] = COMPARATIVE
-    elif ldt_tag[8] == 's':
+    elif ldt_tag[8] == "s":
         parse[DEGREE] = SUPERLATIVE
     # POSITIVE not in use? (default)
     else:
@@ -254,156 +274,216 @@ def ldt_to_parse(ldt_tag):
 def parse_to_ldt(parse):
     ldt_tag = ""
 
-    if parse.get(PART_OF_SPEECH, '') == NOUN:
-        ldt_tag += 'n'
-    elif parse.get(PART_OF_SPEECH, '') == VERB:
-        ldt_tag += 'v'
+    if parse.get(PART_OF_SPEECH, "") == NOUN:
+        ldt_tag += "n"
+    elif parse.get(PART_OF_SPEECH, "") == VERB:
+        ldt_tag += "v"
     # elif parse.get(PART_OF_SPEECH, '') == PARTICIPLE:
     #     LDTtag += 't'
-    elif parse.get(PART_OF_SPEECH, '') == ADJECTIVE:
-        ldt_tag += 'a'
-    elif parse.get(PART_OF_SPEECH, '') == ADVERB or parse.get(PART_OF_SPEECH, '') == ADVERBIAL:
-        ldt_tag += 'd'
-    elif parse.get(PART_OF_SPEECH, '') == CONJUNCTION:
-        ldt_tag += 'c'
-    elif parse.get(PART_OF_SPEECH, '') == PREPOSITION:
-        ldt_tag += 'r'
-    elif parse.get(PART_OF_SPEECH, '') == PRONOUN:
-        ldt_tag += 'p'
-    elif parse.get(PART_OF_SPEECH, '') == NUMERAL:
-        ldt_tag += 'm'
-    elif parse.get(PART_OF_SPEECH, '') == INTERJECTION:
-        ldt_tag += 'i'
-    elif parse.get(PART_OF_SPEECH, '') == EXCLAMATION:
-        ldt_tag += 'e'
-    elif parse.get(PART_OF_SPEECH, '') == PUNCTUATION:
-        ldt_tag += 'u'
+    elif parse.get(PART_OF_SPEECH, "") == ADJECTIVE:
+        ldt_tag += "a"
+    elif parse.get(PART_OF_SPEECH, "") == ADVERB or parse.get(PART_OF_SPEECH, "") == ADVERBIAL:
+        ldt_tag += "d"
+    elif parse.get(PART_OF_SPEECH, "") == CONJUNCTION:
+        ldt_tag += "c"
+    elif parse.get(PART_OF_SPEECH, "") == PREPOSITION:
+        ldt_tag += "r"
+    elif parse.get(PART_OF_SPEECH, "") == PRONOUN:
+        ldt_tag += "p"
+    elif parse.get(PART_OF_SPEECH, "") == NUMERAL:
+        ldt_tag += "m"
+    elif parse.get(PART_OF_SPEECH, "") == INTERJECTION:
+        ldt_tag += "i"
+    elif parse.get(PART_OF_SPEECH, "") == EXCLAMATION:
+        ldt_tag += "e"
+    elif parse.get(PART_OF_SPEECH, "") == PUNCTUATION:
+        ldt_tag += "u"
     else:
-        ldt_tag += '-'
+        ldt_tag += "-"
 
-    if parse.get(PERSON, '') == FIRST_PERSON:
-        ldt_tag += '1'
-    elif parse.get(PERSON, '') == SECOND_PERSON:
-        ldt_tag += '2'
-    elif parse.get(PERSON, '') == THIRD_PERSON:
-        ldt_tag += '3'
+    if parse.get(PERSON, "") == FIRST_PERSON:
+        ldt_tag += "1"
+    elif parse.get(PERSON, "") == SECOND_PERSON:
+        ldt_tag += "2"
+    elif parse.get(PERSON, "") == THIRD_PERSON:
+        ldt_tag += "3"
     else:
-        ldt_tag += '-'
+        ldt_tag += "-"
 
-    if parse.get(NUMBER, '') == SINGULAR:
-        ldt_tag += 's'
-    elif parse.get(NUMBER, '') == PLURAL:
-        ldt_tag += 'p'
+    if parse.get(NUMBER, "") == SINGULAR:
+        ldt_tag += "s"
+    elif parse.get(NUMBER, "") == PLURAL:
+        ldt_tag += "p"
     else:
-        ldt_tag += '-'
+        ldt_tag += "-"
 
-    if parse.get(TENSE, '') == PRESENT:
-        ldt_tag += 'p'
-    elif parse.get(TENSE, '') == IMPERFECT:
-        ldt_tag += 'i'
-    elif parse.get(TENSE, '') == PERFECT:
-        ldt_tag += 'r'
-    elif parse.get(TENSE, '') == PLUPERFECT:
-        ldt_tag += 'l'
-    elif parse.get(TENSE, '') == FUTURE_PERFECT:
-        ldt_tag += 't'
-    elif parse.get(TENSE, '') == FUTURE:
-        ldt_tag += 'f'
+    if parse.get(TENSE, "") == PRESENT:
+        ldt_tag += "p"
+    elif parse.get(TENSE, "") == IMPERFECT:
+        ldt_tag += "i"
+    elif parse.get(TENSE, "") == PERFECT:
+        ldt_tag += "r"
+    elif parse.get(TENSE, "") == PLUPERFECT:
+        ldt_tag += "l"
+    elif parse.get(TENSE, "") == FUTURE_PERFECT:
+        ldt_tag += "t"
+    elif parse.get(TENSE, "") == FUTURE:
+        ldt_tag += "f"
     else:
-        if parse.get(MOOD, '') == GERUNDIVE or parse.get(MOOD, '') == GERUND:
-            ldt_tag += 'p'
+        if parse.get(MOOD, "") == GERUNDIVE or parse.get(MOOD, "") == GERUND:
+            ldt_tag += "p"
         else:
-            ldt_tag += '-'
+            ldt_tag += "-"
 
-    if parse.get(MOOD, '') == INDICATIVE:
-        ldt_tag += 'i'
-    elif parse.get(MOOD, '') == SUBJUNCTIVE:
-        ldt_tag += 's'
-    elif parse.get(MOOD, '') == INFINITIVE:
-        ldt_tag += 'n'
-    elif parse.get(MOOD, '') == IMPERATIVE:
-        ldt_tag += 'm'
-    elif parse.get(MOOD, '') == GERUNDIVE:
-        ldt_tag += 'g'
-    elif parse.get(MOOD, '') == SUPINE:
-        ldt_tag += 'u'
-    elif parse.get(MOOD, '') == GERUND:
-        ldt_tag += 'd'
-    elif parse.get(MOOD, '') == PARTICIPLE:
-        ldt_tag += 'p'
+    if parse.get(MOOD, "") == INDICATIVE:
+        ldt_tag += "i"
+    elif parse.get(MOOD, "") == SUBJUNCTIVE:
+        ldt_tag += "s"
+    elif parse.get(MOOD, "") == INFINITIVE:
+        ldt_tag += "n"
+    elif parse.get(MOOD, "") == IMPERATIVE:
+        ldt_tag += "m"
+    elif parse.get(MOOD, "") == GERUNDIVE:
+        ldt_tag += "g"
+    elif parse.get(MOOD, "") == SUPINE:
+        ldt_tag += "u"
+    elif parse.get(MOOD, "") == GERUND:
+        ldt_tag += "d"
+    elif parse.get(MOOD, "") == PARTICIPLE:
+        ldt_tag += "p"
     else:
-        ldt_tag += '-'
+        ldt_tag += "-"
 
-    if parse.get(VOICE, '') == ACTIVE:
-        ldt_tag += 'a'
-    elif parse.get(VOICE, '') == PASSIVE:
-        ldt_tag += 'p'
+    if parse.get(VOICE, "") == ACTIVE:
+        ldt_tag += "a"
+    elif parse.get(VOICE, "") == PASSIVE:
+        ldt_tag += "p"
     else:
-        if parse.get(TENSE, '') == PRESENT and parse.get(MOOD, '') == PARTICIPLE or parse.get(MOOD, '') == GERUND:
-            ldt_tag += 'a'
-        elif parse.get(TENSE, '') == PERFECT and parse.get(MOOD, '') == PARTICIPLE or parse.get(MOOD, '') == GERUNDIVE:
-            ldt_tag += 'p'
+        if (
+            parse.get(TENSE, "") == PRESENT
+            and parse.get(MOOD, "") == PARTICIPLE
+            or parse.get(MOOD, "") == GERUND
+        ):
+            ldt_tag += "a"
+        elif (
+            parse.get(TENSE, "") == PERFECT
+            and parse.get(MOOD, "") == PARTICIPLE
+            or parse.get(MOOD, "") == GERUNDIVE
+        ):
+            ldt_tag += "p"
         else:
-            ldt_tag += '-'
+            ldt_tag += "-"
 
-    if parse.get(GENDER, '') == MASCULINE:
-        ldt_tag += 'm'
-    elif parse.get(GENDER, '') == FEMININE:
-        ldt_tag += 'f'
-    elif parse.get(GENDER, '') == NEUTER:
-        ldt_tag += 'n'
+    if parse.get(GENDER, "") == MASCULINE:
+        ldt_tag += "m"
+    elif parse.get(GENDER, "") == FEMININE:
+        ldt_tag += "f"
+    elif parse.get(GENDER, "") == NEUTER:
+        ldt_tag += "n"
     else:
-        ldt_tag += '-'
+        ldt_tag += "-"
 
-    if parse.get(CASE, '') == NOMINATIVE:
-        ldt_tag += 'n'
-    elif parse.get(CASE, '') == GENITIVE:
-        ldt_tag += 'g'
-    elif parse.get(CASE, '') == DATIVE:
-        ldt_tag += 'd'
-    elif parse.get(CASE, '') == ACCUSATIVE:
-        ldt_tag += 'a'
-    elif parse.get(CASE, '') == ABLATIVE:
-        ldt_tag += 'b'
-    elif parse.get(CASE, '') == VOCATIVE:
-        ldt_tag += 'v'
-    elif parse.get(CASE, '') == LOCATIVE:
-        ldt_tag += 'l'
+    if parse.get(CASE, "") == NOMINATIVE:
+        ldt_tag += "n"
+    elif parse.get(CASE, "") == GENITIVE:
+        ldt_tag += "g"
+    elif parse.get(CASE, "") == DATIVE:
+        ldt_tag += "d"
+    elif parse.get(CASE, "") == ACCUSATIVE:
+        ldt_tag += "a"
+    elif parse.get(CASE, "") == ABLATIVE:
+        ldt_tag += "b"
+    elif parse.get(CASE, "") == VOCATIVE:
+        ldt_tag += "v"
+    elif parse.get(CASE, "") == LOCATIVE:
+        ldt_tag += "l"
     else:
-        ldt_tag += '-'
+        ldt_tag += "-"
 
-    if parse.get(DEGREE, '') == POSITIVE:
-        ldt_tag += '-'
-    elif parse.get(DEGREE, '') == COMPARATIVE and parse.get(REGULARITY, '') != IRREGULAR and ldt_tag[0] != 'd':
+    if parse.get(DEGREE, "") == POSITIVE:
+        ldt_tag += "-"
+    elif (
+        parse.get(DEGREE, "") == COMPARATIVE
+        and parse.get(REGULARITY, "") != IRREGULAR
+        and ldt_tag[0] != "d"
+    ):
         # Irregular forms are not marked for degree in LDT, nor adverbs (with few exceptions)!
-        ldt_tag += 'c'
-    elif parse.get(DEGREE, '') == SUPERLATIVE and parse.get(REGULARITY, '') != IRREGULAR and ldt_tag[0] != 'd':
-        ldt_tag += 's'
+        ldt_tag += "c"
+    elif (
+        parse.get(DEGREE, "") == SUPERLATIVE
+        and parse.get(REGULARITY, "") != IRREGULAR
+        and ldt_tag[0] != "d"
+    ):
+        ldt_tag += "s"
     else:
-        ldt_tag += '-'
+        ldt_tag += "-"
 
     return ldt_tag
 
 
 def unicodeaccents(txt):
-    for source, replacement in [("a_", "ā"), ("e_", "ē"), ("i_", "ī"), ("o_", "ō"), ("u_", "ū"), ("y_", "ȳ"),
-                                ("A_", "Ā"), ("E_", "Ē"), ("I_", "Ī"), ("O_", "Ō"), ("U_", "Ū"), ("Y_", "Ȳ"),
-                                ("ä_", "ā"), ("ë_", "ē"), ("ï_", "ī"), ("ö_", "ō"), ("ü_", "ū"), ("ÿ_", "ȳ"),
-                                ("æ_", "æ"), ("œ_", "œ"), ("Æ_", "Æ"), ("Œ_", "Œ")]:
+    for source, replacement in [
+        ("a_", "ā"),
+        ("e_", "ē"),
+        ("i_", "ī"),
+        ("o_", "ō"),
+        ("u_", "ū"),
+        ("y_", "ȳ"),
+        ("A_", "Ā"),
+        ("E_", "Ē"),
+        ("I_", "Ī"),
+        ("O_", "Ō"),
+        ("U_", "Ū"),
+        ("Y_", "Ȳ"),
+        ("ä_", "ā"),
+        ("ë_", "ē"),
+        ("ï_", "ī"),
+        ("ö_", "ō"),
+        ("ü_", "ū"),
+        ("ÿ_", "ȳ"),
+        ("æ_", "æ"),
+        ("œ_", "œ"),
+        ("Æ_", "Æ"),
+        ("Œ_", "Œ"),
+    ]:
         txt = txt.replace(source, replacement)
     return txt
 
 
 def escape_macrons(txt):
-    for source, replacement in [("ā", "a_"), ("ē", "e_"), ("ī", "i_"), ("ō", "o_"), ("ū", "u_"), ("ȳ", "y_"),
-                                ("Ā", "A_"), ("Ē", "E_"), ("Ī", "I_"), ("Ō", "O_"), ("Ū", "U_"), ("Ȳ", "Y_")]:
+    for source, replacement in [
+        ("ā", "a_"),
+        ("ē", "e_"),
+        ("ī", "i_"),
+        ("ō", "o_"),
+        ("ū", "u_"),
+        ("ȳ", "y_"),
+        ("Ā", "A_"),
+        ("Ē", "E_"),
+        ("Ī", "I_"),
+        ("Ō", "O_"),
+        ("Ū", "U_"),
+        ("Ȳ", "Y_"),
+    ]:
         txt = txt.replace(source, replacement)
     return txt
 
 
 def removemacrons(txt):
-    for source, replacement in [("ā", "a"), ("ē", "e"), ("ī", "i"), ("ō", "o"), ("ū", "u"), ("ȳ", "y"),
-                                ("Ā", "A"), ("Ē", "E"), ("Ī", "I"), ("Ō", "O"), ("Ū", "U"), ("Ȳ", "Y")]:
+    for source, replacement in [
+        ("ā", "a"),
+        ("ē", "e"),
+        ("ī", "i"),
+        ("ō", "o"),
+        ("ū", "u"),
+        ("ȳ", "y"),
+        ("Ā", "A"),
+        ("Ē", "E"),
+        ("Ī", "I"),
+        ("Ō", "O"),
+        ("Ū", "U"),
+        ("Ȳ", "Y"),
+    ]:
         txt = txt.replace(source, replacement)
     return txt
 
@@ -451,7 +531,15 @@ def morpheus_to_parses(wordform, nl):
         parse[PART_OF_SPEECH] = CONJUNCTION
     elif last_morph_code == "prep":
         parse[PART_OF_SPEECH] = PREPOSITION
-    elif last_morph_code in ["pron1", "pron2", "pron3", "relative", "demonstr", "indef", "interrog"]:
+    elif last_morph_code in [
+        "pron1",
+        "pron2",
+        "pron3",
+        "relative",
+        "demonstr",
+        "indef",
+        "interrog",
+    ]:
         parse[PART_OF_SPEECH] = PRONOUN
     elif last_morph_code == "numeral":
         parse[PART_OF_SPEECH] = NUMERAL
@@ -468,16 +556,42 @@ def morpheus_to_parses(wordform, nl):
         parse[PART_OF_SPEECH] = VERB
         parse[MOOD] = PARTICIPLE
     elif pos_abbrev == "N":
-        if last_morph_code in ["us_a_um", "0_a_um", "er_ra_rum", "er_era_erum", "ius_ia_ium", "is_e", "er_ris_re",
-                               "ans_adj", "ens_adj", "us_ius_adj", "0_ius_adj", "ior_ius_comp", "or_us_comp", "ax_adj",
-                               "0_adj3", "peLs_pedis_adj", "ox_adj", "ix_adj", "s_tis_adj", "ex_icis_adj", "s_dis_adj",
-                               "irreg_adj3", "irreg_adj1", "irreg_adj2", "pron_adj1", "pron_adj3"]:
+        if last_morph_code in [
+            "us_a_um",
+            "0_a_um",
+            "er_ra_rum",
+            "er_era_erum",
+            "ius_ia_ium",
+            "is_e",
+            "er_ris_re",
+            "ans_adj",
+            "ens_adj",
+            "us_ius_adj",
+            "0_ius_adj",
+            "ior_ius_comp",
+            "or_us_comp",
+            "ax_adj",
+            "0_adj3",
+            "peLs_pedis_adj",
+            "ox_adj",
+            "ix_adj",
+            "s_tis_adj",
+            "ex_icis_adj",
+            "s_dis_adj",
+            "irreg_adj3",
+            "irreg_adj1",
+            "irreg_adj2",
+            "pron_adj1",
+            "pron_adj3",
+        ]:
             parse[PART_OF_SPEECH] = ADJECTIVE
         elif "pp4" in last_morph_code:  # This is not in CruncherToXML...
-            if 'supine' in morph_codes:
+            if "supine" in morph_codes:
                 parse[PART_OF_SPEECH] = VERB  # ? Supine attribute is not used in LDT
             else:
-                parse[PART_OF_SPEECH] = ADJECTIVE  # Past participles in the comparative or superlative. But what about "amantior"?
+                parse[
+                    PART_OF_SPEECH
+                ] = ADJECTIVE  # Past participles in the comparative or superlative. But what about "amantior"?
         else:
             parse[PART_OF_SPEECH] = NOUN
     else:
@@ -493,17 +607,25 @@ def morpheus_to_parses(wordform, nl):
                 elif parse.get(feature) == code:
                     featfound = True
                 else:
-                    print("Warning: Feature", feature, "already set! Old:", parse.get(feature), "New:", code)
+                    print(
+                        "Warning: Feature",
+                        feature,
+                        "already set! Old:",
+                        parse.get(feature),
+                        "New:",
+                        code,
+                    )
         if not featfound:
             pass
             # print("Warning: Code", code, "not mapped to feature!")
+
     # enddef
 
     grouped_parses = [parse]
-    for i in range(2, len(morph_codes)-1):
+    for i in range(2, len(morph_codes) - 1):
         code = morph_codes[i]
-        if code.count('/') > 0:
-            code_components = code.split('/')
+        if code.count("/") > 0:
+            code_components = code.split("/")
             new_parses = []
             for existingParse in grouped_parses:
                 for code_component in code_components:
@@ -519,12 +641,16 @@ def morpheus_to_parses(wordform, nl):
     # Similarly, many third declension nomina which can be of any gender are not marked for gender at all.
     final_parses = []
     for parse in grouped_parses:
-        if parse.get(MOOD, '') == GERUNDIVE and parse.get(NUMBER, '') == SINGULAR \
-                and parse.get(GENDER, '') == NEUTER and parse.get(CASE, '') != NOMINATIVE:
+        if (
+            parse.get(MOOD, "") == GERUNDIVE
+            and parse.get(NUMBER, "") == SINGULAR
+            and parse.get(GENDER, "") == NEUTER
+            and parse.get(CASE, "") != NOMINATIVE
+        ):
             new_parse = parse.copy()
             setfeature(new_parse, GERUND, overwrite=True)
             final_parses.append(new_parse)
-        elif parse.get(GENDER, '') == '' and parse.get(CASE, '') != '':
+        elif parse.get(GENDER, "") == "" and parse.get(CASE, "") != "":
             new_parse = parse.copy()
             setfeature(new_parse, MASCULINE)
             final_parses.append(new_parse)
@@ -540,139 +666,139 @@ def morpheus_to_parses(wordform, nl):
 def parse_to_proiel_tag(parse):
     tag = ""
 
-    if parse.get(PART_OF_SPEECH, '') == NOUN:
-        tag += 'Nb'
-    elif parse.get(PART_OF_SPEECH, '') == VERB:
-        tag += 'V-'
+    if parse.get(PART_OF_SPEECH, "") == NOUN:
+        tag += "Nb"
+    elif parse.get(PART_OF_SPEECH, "") == VERB:
+        tag += "V-"
     # elif parse.get(PART_OF_SPEECH, '') == PARTICIPLE:
     #     tag += 't'
-    elif parse.get(PART_OF_SPEECH, '') == ADJECTIVE:
-        tag += 'A-'
-    elif parse.get(PART_OF_SPEECH, '') == ADVERB or parse.get(PART_OF_SPEECH, '') == ADVERBIAL:
-        tag += 'Df'
-    elif parse.get(PART_OF_SPEECH, '') == CONJUNCTION:
-        tag += 'C-'
-    elif parse.get(PART_OF_SPEECH, '') == PREPOSITION:
-        tag += 'R-'
-    elif parse.get(PART_OF_SPEECH, '') == PRONOUN:
-        tag += 'Pp'
-    elif parse.get(PART_OF_SPEECH, '') == NUMERAL:
-        tag += 'Ma'
-    elif parse.get(PART_OF_SPEECH, '') == INTERJECTION:
-        tag += 'I-'
-    elif parse.get(PART_OF_SPEECH, '') == EXCLAMATION:
-        tag += 'I-'
-    elif parse.get(PART_OF_SPEECH, '') == PUNCTUATION:
-        tag += 'X-'
+    elif parse.get(PART_OF_SPEECH, "") == ADJECTIVE:
+        tag += "A-"
+    elif parse.get(PART_OF_SPEECH, "") == ADVERB or parse.get(PART_OF_SPEECH, "") == ADVERBIAL:
+        tag += "Df"
+    elif parse.get(PART_OF_SPEECH, "") == CONJUNCTION:
+        tag += "C-"
+    elif parse.get(PART_OF_SPEECH, "") == PREPOSITION:
+        tag += "R-"
+    elif parse.get(PART_OF_SPEECH, "") == PRONOUN:
+        tag += "Pp"
+    elif parse.get(PART_OF_SPEECH, "") == NUMERAL:
+        tag += "Ma"
+    elif parse.get(PART_OF_SPEECH, "") == INTERJECTION:
+        tag += "I-"
+    elif parse.get(PART_OF_SPEECH, "") == EXCLAMATION:
+        tag += "I-"
+    elif parse.get(PART_OF_SPEECH, "") == PUNCTUATION:
+        tag += "X-"
     else:
-        tag += 'F-'
+        tag += "F-"
 
-    if parse.get(PERSON, '') == FIRST_PERSON:
-        tag += '1'
-    elif parse.get(PERSON, '') == SECOND_PERSON:
-        tag += '2'
-    elif parse.get(PERSON, '') == THIRD_PERSON:
-        tag += '3'
+    if parse.get(PERSON, "") == FIRST_PERSON:
+        tag += "1"
+    elif parse.get(PERSON, "") == SECOND_PERSON:
+        tag += "2"
+    elif parse.get(PERSON, "") == THIRD_PERSON:
+        tag += "3"
     else:
-        tag += '-'
+        tag += "-"
 
-    if parse.get(NUMBER, '') == SINGULAR:
-        tag += 's'
-    elif parse.get(NUMBER, '') == PLURAL:
-        tag += 'p'
+    if parse.get(NUMBER, "") == SINGULAR:
+        tag += "s"
+    elif parse.get(NUMBER, "") == PLURAL:
+        tag += "p"
     else:
-        tag += '-'
+        tag += "-"
 
-    if parse.get(TENSE, '') == PRESENT:
-        tag += 'p'
-    elif parse.get(TENSE, '') == IMPERFECT:
-        tag += 'i'
-    elif parse.get(TENSE, '') == PERFECT:
-        tag += 'r'
-    elif parse.get(TENSE, '') == PLUPERFECT:
-        tag += 'l'
-    elif parse.get(TENSE, '') == FUTURE_PERFECT:
-        tag += 't'
-    elif parse.get(TENSE, '') == FUTURE:
-        tag += 'f'
+    if parse.get(TENSE, "") == PRESENT:
+        tag += "p"
+    elif parse.get(TENSE, "") == IMPERFECT:
+        tag += "i"
+    elif parse.get(TENSE, "") == PERFECT:
+        tag += "r"
+    elif parse.get(TENSE, "") == PLUPERFECT:
+        tag += "l"
+    elif parse.get(TENSE, "") == FUTURE_PERFECT:
+        tag += "t"
+    elif parse.get(TENSE, "") == FUTURE:
+        tag += "f"
     else:
-        tag += '-'
+        tag += "-"
 
-    if parse.get(MOOD, '') == INDICATIVE:
-        tag += 'i'
-    elif parse.get(MOOD, '') == SUBJUNCTIVE:
-        tag += 's'
-    elif parse.get(MOOD, '') == INFINITIVE:
-        tag += 'n'
-    elif parse.get(MOOD, '') == IMPERATIVE:
-        tag += 'm'
-    elif parse.get(MOOD, '') == GERUNDIVE:
-        tag += 'g'
-    elif parse.get(MOOD, '') == SUPINE:
-        tag += 'u'
-    elif parse.get(MOOD, '') == GERUND:
-        tag += 'd'
-    elif parse.get(MOOD, '') == PARTICIPLE:
-        tag += 'p'
+    if parse.get(MOOD, "") == INDICATIVE:
+        tag += "i"
+    elif parse.get(MOOD, "") == SUBJUNCTIVE:
+        tag += "s"
+    elif parse.get(MOOD, "") == INFINITIVE:
+        tag += "n"
+    elif parse.get(MOOD, "") == IMPERATIVE:
+        tag += "m"
+    elif parse.get(MOOD, "") == GERUNDIVE:
+        tag += "g"
+    elif parse.get(MOOD, "") == SUPINE:
+        tag += "u"
+    elif parse.get(MOOD, "") == GERUND:
+        tag += "d"
+    elif parse.get(MOOD, "") == PARTICIPLE:
+        tag += "p"
     else:
-        tag += '-'
+        tag += "-"
 
-    if parse.get(VOICE, '') == ACTIVE:
-        tag += 'a'
-    elif parse.get(VOICE, '') == PASSIVE:
-        tag += 'p'
+    if parse.get(VOICE, "") == ACTIVE:
+        tag += "a"
+    elif parse.get(VOICE, "") == PASSIVE:
+        tag += "p"
     else:
-        if parse.get(TENSE, '') == PRESENT and parse.get(MOOD, '') == PARTICIPLE:
-            tag += 'a'
-        elif parse.get(TENSE, '') == PERFECT and parse.get(MOOD, '') == PARTICIPLE:
-            tag += 'p'
+        if parse.get(TENSE, "") == PRESENT and parse.get(MOOD, "") == PARTICIPLE:
+            tag += "a"
+        elif parse.get(TENSE, "") == PERFECT and parse.get(MOOD, "") == PARTICIPLE:
+            tag += "p"
         else:
-            tag += '-'
+            tag += "-"
 
-    if parse.get(GENDER, '') == MASCULINE:
-        tag += 'm'
-    elif parse.get(GENDER, '') == FEMININE:
-        tag += 'f'
-    elif parse.get(GENDER, '') == NEUTER:
-        tag += 'n'
+    if parse.get(GENDER, "") == MASCULINE:
+        tag += "m"
+    elif parse.get(GENDER, "") == FEMININE:
+        tag += "f"
+    elif parse.get(GENDER, "") == NEUTER:
+        tag += "n"
     else:
-        tag += '-'
+        tag += "-"
 
-    if parse.get(CASE, '') == NOMINATIVE:
-        tag += 'n'
-    elif parse.get(CASE, '') == GENITIVE:
-        tag += 'g'
-    elif parse.get(CASE, '') == DATIVE:
-        tag += 'd'
-    elif parse.get(CASE, '') == ACCUSATIVE:
-        tag += 'a'
-    elif parse.get(CASE, '') == ABLATIVE:
-        tag += 'b'
-    elif parse.get(CASE, '') == VOCATIVE:
-        tag += 'v'
-    elif parse.get(CASE, '') == LOCATIVE:
-        tag += 'l'
+    if parse.get(CASE, "") == NOMINATIVE:
+        tag += "n"
+    elif parse.get(CASE, "") == GENITIVE:
+        tag += "g"
+    elif parse.get(CASE, "") == DATIVE:
+        tag += "d"
+    elif parse.get(CASE, "") == ACCUSATIVE:
+        tag += "a"
+    elif parse.get(CASE, "") == ABLATIVE:
+        tag += "b"
+    elif parse.get(CASE, "") == VOCATIVE:
+        tag += "v"
+    elif parse.get(CASE, "") == LOCATIVE:
+        tag += "l"
     else:
-        tag += '-'
+        tag += "-"
 
-    if parse.get(DEGREE, '') == POSITIVE:
-        tag += 'p'
-    elif parse.get(DEGREE, '') == COMPARATIVE:
-        tag += 'c'
-    elif parse.get(DEGREE, '') == SUPERLATIVE:
-        tag += 's'
+    if parse.get(DEGREE, "") == POSITIVE:
+        tag += "p"
+    elif parse.get(DEGREE, "") == COMPARATIVE:
+        tag += "c"
+    elif parse.get(DEGREE, "") == SUPERLATIVE:
+        tag += "s"
     else:
-        if parse.get(PART_OF_SPEECH, '') == ADJECTIVE:
-            tag += 'p'
+        if parse.get(PART_OF_SPEECH, "") == ADJECTIVE:
+            tag += "p"
         else:
-            tag += '-'
+            tag += "-"
 
-    tag += '-'
+    tag += "-"
 
     if tag[2:] == "---------":
-        tag += 'n'
+        tag += "n"
     else:
-        tag += 'i'
+        tag += "i"
 
     return tag
 
@@ -683,37 +809,37 @@ def parses_to_proiel_tags(parses):
         tags.append(parse_to_proiel_tag(parse))
     tagswithgender = {}
     for tag in tags:
-        withoutgender = tag[0:7]+tag[8:12]
+        withoutgender = tag[0:7] + tag[8:12]
         tagswithgender[withoutgender] = tagswithgender.get(withoutgender, set()) | {tag[7]}
     for withoutgender in tagswithgender:
         genders = tagswithgender[withoutgender]
-        if 'm' in genders and 'n' in genders:
-            tags.append(withoutgender[0:7]+'o'+withoutgender[7:11])
-        if 'm' in genders and 'f' in genders:
-            tags.append(withoutgender[0:7]+'p'+withoutgender[7:11])
-        if 'm' in genders and 'f' in genders and 'n' in genders:
-            tags.append(withoutgender[0:7]+'q'+withoutgender[7:11])
-        if 'f' in genders and 'n' in genders:
-            tags.append(withoutgender[0:7]+'r'+withoutgender[7:11])
+        if "m" in genders and "n" in genders:
+            tags.append(withoutgender[0:7] + "o" + withoutgender[7:11])
+        if "m" in genders and "f" in genders:
+            tags.append(withoutgender[0:7] + "p" + withoutgender[7:11])
+        if "m" in genders and "f" in genders and "n" in genders:
+            tags.append(withoutgender[0:7] + "q" + withoutgender[7:11])
+        if "f" in genders and "n" in genders:
+            tags.append(withoutgender[0:7] + "r" + withoutgender[7:11])
     for tag in tags:
         if tag[0:2] == "Df":
             if tag == "Df---------n":
                 tags.append("Df-------p-i")
-            tags.append("Dq"+tag[2:])
-            tags.append("Du"+tag[2:])
+            tags.append("Dq" + tag[2:])
+            tags.append("Du" + tag[2:])
         elif tag[0:2] == "Ma":
-            tags.append("Mo"+tag[2:])
+            tags.append("Mo" + tag[2:])
         elif tag[0:2] == "Pp":
-            tags.append("Pc"+tag[2:])
-            tags.append("Pd"+tag[2:])
-            tags.append("Pi"+tag[2:])
-            tags.append("Pk"+tag[2:])
-            tags.append("Pr"+tag[2:])
-            tags.append("Ps"+tag[2:])
-            tags.append("Pt"+tag[2:])
-            tags.append("Px"+tag[2:])
+            tags.append("Pc" + tag[2:])
+            tags.append("Pd" + tag[2:])
+            tags.append("Pi" + tag[2:])
+            tags.append("Pk" + tag[2:])
+            tags.append("Pr" + tag[2:])
+            tags.append("Ps" + tag[2:])
+            tags.append("Pt" + tag[2:])
+            tags.append("Px" + tag[2:])
         elif tag[0:2] == "Nb":
-            tags.append("Ne"+tag[2:])
+            tags.append("Ne" + tag[2:])
         # elif tag[0:8] == "V--s-g-m":
         #     tags.append("V----d--"+tag[8:])
         # elif tag[0:7] == "V--sppa":
@@ -734,11 +860,22 @@ def tag_distance(tag1, tag2):
         exit(0)
 
     def is_nomen(tag):
-        if tag[0] == 'n' or tag[0] == 'a' or tag[0] == 'v' and (tag[3:6] == 'rpp' or tag[3:6] == 'ppa'):
+        if (
+            tag[0] == "n"
+            or tag[0] == "a"
+            or tag[0] == "v"
+            and (tag[3:6] == "rpp" or tag[3:6] == "ppa")
+        ):
             return True
-        elif tag[0] == 'N' or tag[0] == 'A' or tag[0] == 'V' and (tag[4:7] == 'rpp' or tag[4:7] == 'ppa'):
+        elif (
+            tag[0] == "N"
+            or tag[0] == "A"
+            or tag[0] == "V"
+            and (tag[4:7] == "rpp" or tag[4:7] == "ppa")
+        ):
             return True
         return False
+
     # enddef
 
     dist = 0
@@ -746,10 +883,14 @@ def tag_distance(tag1, tag2):
     if is_nomen(tag1) and is_nomen(tag2) and tag1[0] != tag2[0]:
         bothnomenbutdifferent = True
     for i in range(0, len(tag1)):
-        if bothnomenbutdifferent and (len(tag1) == 9 and i in [3, 4, 5] or len(tag1) == 12 and i in [4, 5, 6]):
+        if bothnomenbutdifferent and (
+            len(tag1) == 9 and i in [3, 4, 5] or len(tag1) == 12 and i in [4, 5, 6]
+        ):
             continue
         else:
             if tag1[i] != tag2[i]:
                 dist += 1
     return dist
+
+
 # enddef
