@@ -3,3 +3,11 @@
 
 .python-version
 __pycache__
+pyrightconfig.json
+
+/ldt-corpus.txt
+/lemmas.py
+/macronized_endings.py
+/macronizer.db
+/rftagger-ldt.model
+/rftagger-lexicon.txt
